@@ -1,0 +1,39 @@
+{
+  "last_updated": "2025-04-25",
+  "wholesale": {
+    "enabled": true,
+    "min_monthly_sales": 300,
+    "min_roi_percent": 30,
+    "max_sellers": 8,
+    "max_bsr": 50000,
+    "categories": ["Health & Household", "Grocery & Gourmet"],
+    "notes": "Established brands only, prefer net-30 terms, avoid Amazon 1P brands"
+  },
+  "online_arbitrage": {
+    "enabled": true,
+    "min_monthly_sales": 200,
+    "min_roi_percent": 35,
+    "max_sellers": 12,
+    "max_bsr": 75000,
+    "min_price_spread": 8,
+    "max_buy_cost": 35,
+    "categories": ["Health & Household", "Beauty & Personal Care", "Grocery & Gourmet"],
+    "active_sources": [
+      "Walgreens clearance",
+      "CVS weekly sales",
+      "Vitacost sale items",
+      "iHerb promotions",
+      "Target Circle deals",
+      "Walmart Clearance"
+    ],
+    "notes": "Include clearance and coupon stacking, avoid Hazmat, prefer replenishable sources"
+  },
+  "agent": {
+    "anthropic_api_key": "",
+    "scan_interval_hours": 4,
+    "notify_email": "",
+    "notify_slack_webhook": "",
+    "max_leads_per_run": 10,
+    "auto_analyze": true
+  }
+}

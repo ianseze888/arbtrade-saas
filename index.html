@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — Amazon Research Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:     #0a0a08;
+  --paper:   #f2efe8;
+  --cream:   #e8e4da;
+  --gold:    #c8a96e;
+  --gold2:   #e8c98a;
+  --teal:    #1a6b5a;
+  --teal2:   #2d9978;
+  --red:     #c0392b;
+  --muted:   #6b6860;
+  --dim:     #3a3832;
+  --border:  rgba(10,10,8,0.12);
+  --mono:    'DM Mono', monospace;
+  --serif:   'Fraunces', serif;
+  --display: 'Bebas Neue', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* ── Noise overlay ─────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 1000; opacity: .55;
+}
+
+/* ── Ticker ────────────────────────────────────────────── */
+.ticker {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  padding: 5px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 28s linear infinite;
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.tick-item { display: inline-block; padding: 0 32px; }
+.tick-up   { color: var(--teal); }
+.tick-dn   { color: var(--red); }
+
+/* ── Nav ───────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 26px; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 40px;
+  mix-blend-mode: difference;
+}
+.nav-logo {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: .08em;
+  color: var(--paper);
+}
+.nav-links { display: flex; gap: 28px; align-items: center; }
+.nav-links a {
+  font-size: 11px; letter-spacing: .1em;
+  text-decoration: none; color: var(--paper);
+  opacity: .6; transition: opacity .2s;
+  text-transform: uppercase;
+}
+.nav-links a:hover { opacity: 1; }
+.nav-cta {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  border: 1px solid var(--paper); padding: 7px 18px;
+  color: var(--paper); text-decoration: none;
+  transition: all .2s; border-radius: 2px;
+}
+.nav-cta:hover { background: var(--paper); color: var(--ink) !important; opacity: 1 !important; }
+
+/* ── Hero ──────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding-top: 26px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-left {
+  padding: 140px 40px 80px 40px;
+  display: flex; flex-direction: column; justify-content: center;
+  position: relative; z-index: 2;
+}
+
+.hero-eyebrow {
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 24px;
+  display: flex; align-items: center; gap: 12px;
+  opacity: 0; animation: fadeUp .6s ease forwards .3s;
+}
+.hero-eyebrow::before {
+  content: ''; display: block;
+  width: 32px; height: 1px; background: var(--gold);
+}
+
+.hero-h1 {
+  font-family: var(--display);
+  font-size: clamp(72px, 8vw, 120px);
+  line-height: .92;
+  letter-spacing: .01em;
+  margin-bottom: 8px;
+  opacity: 0; animation: fadeUp .7s ease forwards .5s;
+}
+.hero-h1 em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--gold);
+  font-size: .72em;
+  display: block;
+}
+
+.hero-sub {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.7;
+  color: rgba(242,239,232,.65);
+  max-width: 400px;
+  margin: 28px 0 44px;
+  opacity: 0; animation: fadeUp .7s ease forwards .7s;
+}
+
+.hero-actions {
+  display: flex; gap: 14px; align-items: center;
+  opacity: 0; animation: fadeUp .7s ease forwards .9s;
+}
+.btn-primary {
+  background: var(--gold);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all .2s;
+  cursor: pointer; border: none;
+}
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); }
+.btn-ghost {
+  font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(242,239,232,.6); text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+  transition: color .2s; cursor: pointer; border: none; background: none;
+}
+.btn-ghost:hover { color: var(--paper); }
+.btn-ghost::after { content: '→'; transition: transform .2s; }
+.btn-ghost:hover::after { transform: translateX(4px); }
+
+/* Hero right — live terminal */
+.hero-right {
+  padding: 100px 40px 80px 20px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  opacity: 0; animation: fadeIn .9s ease forwards 1.1s;
+}
+
+.terminal {
+  width: 100%; max-width: 480px;
+  background: rgba(242,239,232,.04);
+  border: 1px solid rgba(242,239,232,.1);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+  box-shadow: 0 40px 80px rgba(0,0,0,.5);
+}
+.terminal-bar {
+  background: rgba(242,239,232,.07);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 7px;
+  border-bottom: 1px solid rgba(242,239,232,.07);
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-body { padding: 20px; line-height: 2; color: rgba(242,239,232,.75); }
+.t-prompt { color: var(--gold); }
+.t-cmd    { color: var(--paper); }
+.t-out    { color: rgba(242,239,232,.5); padding-left: 16px; }
+.t-buy    { color: var(--teal2); font-weight: 500; }
+.t-roi    { color: var(--gold); }
+.t-cursor {
+  display: inline-block; width: 8px; height: 14px;
+  background: var(--gold); vertical-align: middle;
+  animation: blink .9s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+/* Animated scan lines on terminal */
+.terminal::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: scan 3s ease-in-out infinite;
+  pointer-events: none;
+}
+.hero-right { position: relative; }
+
+@keyframes scan {
+  0%   { top: 100px; opacity: 0; }
+  10%  { opacity: .6; }
+  90%  { opacity: .6; }
+  100% { top: 560px; opacity: 0; }
+}
+
+/* ── Stats band ────────────────────────────────────────── */
+.stats-band {
+  border-top: 1px solid rgba(242,239,232,.08);
+  border-bottom: 1px solid rgba(242,239,232,.08);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+}
+.stat-item {
+  padding: 36px 40px;
+  border-right: 1px solid rgba(242,239,232,.08);
+  position: relative; overflow: hidden;
+  opacity: 0;
+}
+.stat-item:last-child { border-right: none; }
+.stat-item.visible { animation: fadeUp .5s ease forwards; }
+.stat-num {
+  font-family: var(--display);
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.stat-label {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(242,239,232,.45);
+}
+
+/* ── How it works ──────────────────────────────────────── */
+.section {
+  padding: 100px 40px;
+  max-width: 1200px; margin: 0 auto;
+}
+.section-eye {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.section-eye::before { content:''; width:24px; height:1px; background:var(--gold); }
+.section-h2 {
+  font-family: var(--display);
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: .95; letter-spacing: .02em;
+  margin-bottom: 60px;
+}
+.section-h2 em { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--gold); }
+
+/* Steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(242,239,232,.08); border: 1px solid rgba(242,239,232,.08); }
+.step {
+  background: var(--ink);
+  padding: 36px 32px;
+  position: relative;
+  transition: background .25s;
+  opacity: 0;
+}
+.step:hover { background: rgba(242,239,232,.03); }
+.step.visible { animation: fadeUp .55s ease forwards; }
+.step-num {
+  font-family: var(--display);
+  font-size: 64px; line-height: 1;
+  color: rgba(242,239,232,.06);
+  position: absolute; top: 20px; right: 24px;
+  letter-spacing: .02em;
+}
+.step-icon { font-size: 22px; margin-bottom: 16px; }
+.step-title {
+  font-size: 15px; font-weight: 500; letter-spacing: .04em;
+  margin-bottom: 10px; color: var(--paper);
+  text-transform: uppercase;
+}
+.step-body { font-size: 12px; line-height: 1.8; color: rgba(242,239,232,.5); }
+.step-tag {
+  display: inline-block; margin-top: 14px;
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 20px;
+}
+.tag-ws  { background: rgba(26,107,90,.2);  color: var(--teal2); }
+.tag-oa  { background: rgba(200,169,110,.12); color: var(--gold); }
+.tag-both{ background: rgba(242,239,232,.07); color: rgba(242,239,232,.5); }
+
+/* ── Feature grid ──────────────────────────────────────── */
+.features { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(242,239,232,.08); border: 1px solid rgba(242,239,232,.08); margin-top: 1px; }
+.feature {
+  background: var(--ink); padding: 40px 36px;
+  transition: background .25s; opacity: 0;
+}
+.feature:hover { background: rgba(242,239,232,.03); }
+.feature.visible { animation: fadeUp .55s ease forwards; }
+.feature-label {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 14px;
+}
+.feature-title {
+  font-family: var(--serif); font-weight: 300; font-size: 26px;
+  line-height: 1.2; margin-bottom: 12px;
+  color: var(--paper);
+}
+.feature-body { font-size: 12px; line-height: 1.85; color: rgba(242,239,232,.5); }
+
+/* ── Marquee divider ───────────────────────────────────── */
+.marquee-div {
+  border-top: 1px solid rgba(242,239,232,.08);
+  border-bottom: 1px solid rgba(242,239,232,.08);
+  padding: 18px 0; overflow: hidden; white-space: nowrap;
+}
+.marquee-inner {
+  display: inline-block;
+  animation: ticker 20s linear infinite;
+  font-family: var(--display);
+  font-size: 32px; letter-spacing: .08em;
+  color: rgba(242,239,232,.07);
+}
+.marquee-inner span { padding: 0 28px; }
+.marquee-inner em { color: var(--gold); font-style: normal; }
+
+/* ── CTA section ───────────────────────────────────────── */
+.cta-section {
+  padding: 120px 40px;
+  text-align: center;
+  border-top: 1px solid rgba(242,239,232,.08);
+  position: relative; overflow: hidden;
+}
+.cta-section::before {
+  content: 'ARB';
+  font-family: var(--display);
+  font-size: 320px; line-height: 1;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  color: rgba(242,239,232,.02);
+  pointer-events: none; letter-spacing: .05em;
+  white-space: nowrap;
+}
+.cta-h2 {
+  font-family: var(--display);
+  font-size: clamp(48px,6vw,88px);
+  line-height: .92; letter-spacing: .02em;
+  margin-bottom: 20px; position: relative;
+}
+.cta-h2 em { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--gold); }
+.cta-sub {
+  font-family: var(--serif); font-weight: 300; font-size: 17px;
+  color: rgba(242,239,232,.55); max-width: 480px; margin: 0 auto 40px;
+  line-height: 1.7;
+}
+.cta-actions { display: flex; gap: 16px; justify-content: center; align-items: center; }
+
+/* ── Footer ────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid rgba(242,239,232,.08);
+  padding: 28px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; letter-spacing: .06em; color: rgba(242,239,232,.3);
+}
+.footer-logo { font-family: var(--display); font-size: 18px; color: rgba(242,239,232,.2); }
+
+/* ── Animations ────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity:0; transform: translateY(18px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Scroll reveal ─────────────────────────────────────── */
+.reveal { opacity: 0; }
+.reveal.visible { animation: fadeUp .6s ease forwards; }
+
+/* ── Mode toggle pill ──────────────────────────────────── */
+.mode-pill {
+  display: inline-flex; gap: 2px;
+  background: rgba(242,239,232,.07);
+  border: 1px solid rgba(242,239,232,.12);
+  border-radius: 40px; padding: 4px;
+  margin-bottom: 60px;
+}
+.mode-pill-btn {
+  padding: 7px 20px; border-radius: 30px; font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+  border: none; background: transparent; color: rgba(242,239,232,.45);
+  transition: all .2s; font-family: var(--mono);
+}
+.mode-pill-btn.active { background: var(--gold); color: var(--ink); font-weight: 500; }
+
+/* ── Comparison ────────────────────────────────────────── */
+.comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(242,239,232,.08); border: 1px solid rgba(242,239,232,.08); }
+.comp-col { background: var(--ink); padding: 36px 32px; }
+.comp-col.featured { background: rgba(200,169,110,.05); border-top: 2px solid var(--gold); }
+.comp-col-title { font-family: var(--display); font-size: 28px; letter-spacing: .06em; margin-bottom: 6px; }
+.comp-col-sub { font-size: 11px; letter-spacing: .08em; color: rgba(242,239,232,.4); margin-bottom: 28px; text-transform: uppercase; }
+.comp-item { display: flex; gap: 10px; font-size: 12px; color: rgba(242,239,232,.6); line-height: 1.6; margin-bottom: 10px; }
+.comp-item::before { content: '→'; color: var(--gold); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span class="tick-item">WS · SKU-0041 · BSR #3,200 · <span class="tick-up">▲ ROI 38%</span></span>
+    <span class="tick-item">OA · Neutrogena Hydro Boost · Walgreens Clearance · <span class="tick-up">▲ ROI 58%</span></span>
+    <span class="tick-item">WS · Seventh Gen Dish Soap 4pk · UNFI · <span class="tick-up">▲ ROI 42%</span></span>
+    <span class="tick-item">OA · Oral-B Pro 1000 · Target Circle · <span class="tick-up">▲ ROI 44%</span></span>
+    <span class="tick-item">AGENT · Scan complete · 11 leads found · Next run in 4h</span>
+    <span class="tick-item">WS · SKU-0037 · <span class="tick-dn">▼ Reorder threshold hit</span> · 22 days stock remaining</span>
+    <span class="tick-item">OA · Nature Made Vitamin D3 · iHerb Promo · <span class="tick-up">▲ ROI 51%</span></span>
+    <span class="tick-item">WS · SKU-0041 · BSR #3,200 · <span class="tick-up">▲ ROI 38%</span></span>
+    <span class="tick-item">OA · Neutrogena Hydro Boost · Walgreens Clearance · <span class="tick-up">▲ ROI 58%</span></span>
+    <span class="tick-item">WS · Seventh Gen Dish Soap 4pk · UNFI · <span class="tick-up">▲ ROI 42%</span></span>
+    <span class="tick-item">OA · Oral-B Pro 1000 · Target Circle · <span class="tick-up">▲ ROI 44%</span></span>
+    <span class="tick-item">AGENT · Scan complete · 11 leads found · Next run in 4h</span>
+    <span class="tick-item">WS · SKU-0037 · <span class="tick-dn">▼ Reorder threshold hit</span> · 22 days stock remaining</span>
+    <span class="tick-item">OA · Nature Made Vitamin D3 · iHerb Promo · <span class="tick-up">▲ ROI 51%</span></span>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">ARBTRADE</div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#compare">WS vs OA</a>
+    <a href="dashboard.html" class="nav-cta">Open hub →</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">AI-powered product intelligence</div>
+    <div class="hero-h1">
+      FIND<br>WINNING<br><em>products</em><br>ON AUTOPILOT
+    </div>
+    <p class="hero-sub">
+      A deep research agent that continuously scans wholesale suppliers and online arbitrage sources — surfacing high-ROI Amazon FBA opportunities while you sleep.
+    </p>
+    <div class="hero-actions">
+      <a href="dashboard.html" class="btn-primary">Open the hub</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#ff5f56"></div>
+        <div class="terminal-dot" style="background:#ffbd2e"></div>
+        <div class="terminal-dot" style="background:#27c93f"></div>
+        <span style="margin-left:8px;font-size:11px;color:rgba(242,239,232,.3)">agent.py — scanning</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">$</span> <span class="t-cmd">python agent.py</span></div>
+        <div class="t-out">Loading criteria.json...</div>
+        <div class="t-out">Wholesale mode: <span style="color:var(--teal2)">enabled</span> · OA mode: <span style="color:var(--gold)">enabled</span></div>
+        <div class="t-out" style="margin-top:8px">⟳ Scanning BSR rankings (Health &amp; HH)...</div>
+        <div class="t-out">⟳ Cross-ref seller count + buy box data...</div>
+        <div class="t-out">⟳ Running ROI model vs price history...</div>
+        <div class="t-out">⟳ Scanning Walgreens clearance + CVS...</div>
+        <div class="t-out">⟳ Checking distributor databases...</div>
+        <div class="t-out" style="margin-top:8px;color:var(--teal2)">✓ Scan complete — 11 leads found</div>
+        <div style="margin-top:12px;border-top:1px solid rgba(242,239,232,.08);padding-top:12px">
+          <div class="t-out"><span class="t-buy">BUY</span>  Seventh Gen Dish Soap 4pk  <span class="t-roi">42% ROI</span></div>
+          <div class="t-out"><span class="t-buy">BUY</span>  Neutrogena Hydro Boost     <span class="t-roi">58% ROI</span></div>
+          <div class="t-out"><span class="t-buy">BUY</span>  Nature Made Vit D3 360ct   <span class="t-roi">51% ROI</span></div>
+          <div class="t-out" style="color:var(--gold)">WATCH Purina Pro Plan 6lb       29% ROI</div>
+        </div>
+        <div style="margin-top:12px">
+          <span class="t-prompt">$</span> <span class="t-cursor"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats band -->
+<div class="stats-band">
+  <div class="stat-item">
+    <div class="stat-num" id="stat1">0</div>
+    <div class="stat-label">Avg OA ROI found</div>
+  </div>
+  <div class="stat-item" style="animation-delay:.1s">
+    <div class="stat-num" id="stat2">0</div>
+    <div class="stat-label">Sources monitored</div>
+  </div>
+  <div class="stat-item" style="animation-delay:.2s">
+    <div class="stat-num" id="stat3">0</div>
+    <div class="stat-label">Scans per day</div>
+  </div>
+  <div class="stat-item" style="animation-delay:.3s">
+    <div class="stat-num" id="stat4">0</div>
+    <div class="stat-label">Min criteria filters</div>
+  </div>
+</div>
+
+<!-- How it works -->
+<section class="section" id="how">
+  <div class="section-eye">How it works</div>
+  <div class="section-h2">Six steps from<br>criteria to <em>cash</em></div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">⊙</div>
+      <div class="step-title">Set your criteria</div>
+      <div class="step-body">Define your minimum ROI, max BSR, seller count thresholds, and target categories. Adjust any time — the agent picks up changes on its next run.</div>
+      <span class="step-tag tag-both">WS + OA</span>
+    </div>
+    <div class="step" style="animation-delay:.1s">
+      <div class="step-num">02</div>
+      <div class="step-icon">◎</div>
+      <div class="step-title">Agent scans sources</div>
+      <div class="step-body">The research agent sweeps wholesale distributor databases, clearance portals, and sale events — continuously, on your schedule, without prompting.</div>
+      <span class="step-tag tag-oa">OA focused</span>
+    </div>
+    <div class="step" style="animation-delay:.2s">
+      <div class="step-num">03</div>
+      <div class="step-icon">≡</div>
+      <div class="step-title">Leads ranked by ROI</div>
+      <div class="step-body">Every lead is scored against your filters — buy cost, sell price, FBA fees, BSR, competition. BUY / WATCH / PASS recommendations surfaced automatically.</div>
+      <span class="step-tag tag-both">WS + OA</span>
+    </div>
+    <div class="step" style="animation-delay:.3s">
+      <div class="step-num">04</div>
+      <div class="step-icon">◷</div>
+      <div class="step-title">Review in dashboard</div>
+      <div class="step-body">Load the latest results into your browser dashboard. Filter by type, recommendation, or ROI. Deep-dive any lead for full supplier and risk analysis.</div>
+      <span class="step-tag tag-both">WS + OA</span>
+    </div>
+    <div class="step" style="animation-delay:.4s">
+      <div class="step-num">05</div>
+      <div class="step-icon">⇄</div>
+      <div class="step-title">Place orders & ship to 3PL</div>
+      <div class="step-body">Issue POs to suppliers or buy online arbitrage deals. Your 3PL receives, preps, labels, and ships to Amazon FBA — tracked through the orders panel.</div>
+      <span class="step-tag tag-ws">Wholesale</span>
+    </div>
+    <div class="step" style="animation-delay:.5s">
+      <div class="step-num">06</div>
+      <div class="step-icon">↻</div>
+      <div class="step-title">Reorder & scale</div>
+      <div class="step-body">Reorder triggers alert you when stock hits 30 days remaining. Winning SKUs get scaled. Wholesale catalog grows while OA funds your cash flow.</div>
+      <span class="step-tag tag-ws">Wholesale</span>
+    </div>
+  </div>
+</section>
+
+<!-- Marquee divider -->
+<div class="marquee-div">
+  <div class="marquee-inner">
+    <span>WHOLESALE</span><span>·</span><em><span>ARBITRAGE</span></em><span>·</span><span>FBA</span><span>·</span><em><span>RESEARCH AGENT</span></em><span>·</span><span>KEEPA</span><span>·</span><em><span>30%+ ROI</span></em><span>·</span><span>3PL WORKFLOW</span><span>·</span><em><span>AUTOPILOT</span></em><span>·</span>
+    <span>WHOLESALE</span><span>·</span><em><span>ARBITRAGE</span></em><span>·</span><span>FBA</span><span>·</span><em><span>RESEARCH AGENT</span></em><span>·</span><span>KEEPA</span><span>·</span><em><span>30%+ ROI</span></em><span>·</span><span>3PL WORKFLOW</span><span>·</span><em><span>AUTOPILOT</span></em><span>·</span>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="section" id="features">
+  <div class="section-eye">Features</div>
+  <div class="section-h2">Everything you need<br>to hit <em>six figures</em></div>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-label">Research agent</div>
+      <div class="feature-title">Scans while you sleep</div>
+      <div class="feature-body">Set a schedule — every 4, 8, or 12 hours — and the agent runs autonomously. Wholesale distributor databases, clearance portals, coupon stacking events. No prompting required.</div>
+    </div>
+    <div class="feature" style="animation-delay:.1s">
+      <div class="feature-label">Criteria control</div>
+      <div class="feature-title">Adjust in seconds, not hours</div>
+      <div class="feature-body">Sliders for ROI, BSR, seller count, price spread. Toggle OA sources on and off. Save from the dashboard and your next agent run uses the new settings automatically.</div>
+    </div>
+    <div class="feature" style="animation-delay:.15s">
+      <div class="feature-label">Profit calculator</div>
+      <div class="feature-title">Real numbers, not estimates</div>
+      <div class="feature-body">FBA fees, referral percentage, prep costs, inbound shipping — all accounted for. See net profit per unit and ROI before you place a single order.</div>
+    </div>
+    <div class="feature" style="animation-delay:.2s">
+      <div class="feature-label">Pipeline tracker</div>
+      <div class="feature-title">From lead to live listing</div>
+      <div class="feature-body">Track every SKU through research → supplier outreach → samples → PO → 3PL → FBA. Know exactly where every product is in your pipeline at all times.</div>
+    </div>
+    <div class="feature" style="animation-delay:.25s">
+      <div class="feature-label">OA source library</div>
+      <div class="feature-title">Tier 1 sources = your edge</div>
+      <div class="feature-body">Brand clearance portals, Chewy Autoship gaps, CVS + Walgreens coupon stacking, iHerb promos. The sources most sellers ignore — but where the best margins live.</div>
+    </div>
+    <div class="feature" style="animation-delay:.3s">
+      <div class="feature-label">Reorder triggers</div>
+      <div class="feature-title">Never stock out again</div>
+      <div class="feature-body">Monitor days-of-stock-remaining for every active SKU. Alerts fire at your reorder threshold so you place POs before inventory runs dry and rankings tank.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Compare -->
+<section class="section" id="compare">
+  <div class="section-eye">Strategy</div>
+  <div class="section-h2">Wholesale vs<br><em>online arbitrage</em></div>
+  <div class="comp-grid">
+    <div class="comp-col featured">
+      <div class="comp-col-title" style="color:var(--teal2)">Wholesale</div>
+      <div class="comp-col-sub">The scaling engine</div>
+      <div class="comp-item">Repeatable orders from the same supplier</div>
+      <div class="comp-item">Lower competition — gated brand accounts</div>
+      <div class="comp-item">25–40% ROI, consistent and predictable</div>
+      <div class="comp-item">Builds long-term catalog on autopilot</div>
+      <div class="comp-item">$1K–$5K+ to open supplier accounts</div>
+      <div class="comp-item">4–8 week cash cycle</div>
+    </div>
+    <div class="comp-col">
+      <div class="comp-col-title" style="color:var(--gold)">Online Arbitrage</div>
+      <div class="comp-col-sub">The cash flow engine</div>
+      <div class="comp-item">Fast deals — buy today, sell in 2 weeks</div>
+      <div class="comp-item">30–60% ROI on individual units</div>
+      <div class="comp-item">Low capital entry — start with $200</div>
+      <div class="comp-item">Test categories before committing to WS</div>
+      <div class="comp-item">Deal-dependent — requires active sourcing</div>
+      <div class="comp-item">Best with replenishable sources</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-h2">READY TO<br>BUILD YOUR<br><em>machine?</em></div>
+  <p class="cta-sub">Download the hub, set your API key, and have your first agent scan running in under five minutes.</p>
+  <div class="cta-actions">
+    <a href="dashboard.html" class="btn-primary">Open the hub →</a>
+    <a href="#how" class="btn-ghost" style="color:rgba(242,239,232,.55)">How it works</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">ARBTRADE</div>
+  <div>Amazon Research Hub · Wholesale + OA · AI-powered</div>
+  <div>Built for scale</div>
+</footer>
+
+<script>
+// ── Counter animation ───────────────────────────────────────────────
+function animateCounter(el, target, suffix, duration) {
+  var start = 0, step = target / (duration / 16);
+  var timer = setInterval(function() {
+    start = Math.min(start + step, target);
+    el.textContent = Math.round(start) + suffix;
+    if (start >= target) clearInterval(timer);
+  }, 16);
+}
+
+// ── Intersection observer ───────────────────────────────────────────
+var observed = new Set();
+var io = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (!entry.isIntersecting || observed.has(entry.target)) return;
+    observed.add(entry.target);
+    entry.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.stat-item, .step, .feature, .reveal').forEach(function(el) {
+  io.observe(el);
+});
+
+// Stats counters trigger when band comes into view
+var statsIo = new IntersectionObserver(function(entries) {
+  if (!entries[0].isIntersecting) return;
+  statsIo.disconnect();
+  animateCounter(document.getElementById('stat1'), 47, '%', 1200);
+  animateCounter(document.getElementById('stat2'), 16, '',  1400);
+  animateCounter(document.getElementById('stat3'), 6,  'x', 1000);
+  animateCounter(document.getElementById('stat4'), 12, '',  1100);
+}, { threshold: 0.4 });
+statsIo.observe(document.querySelector('.stats-band'));
+
+// ── Smooth scroll for anchor links ──────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+</body>
+</html>

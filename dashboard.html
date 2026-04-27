@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — Research Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f2efe8;--muted:#888884;--dim:#555552;
+  --gold:#c8a96e;--gold2:#e8c98a;
+  --ws:#4A9EFF;--ws-bg:rgba(74,158,255,0.08);--ws-border:rgba(74,158,255,0.25);
+  --oa:#3ECFA0;--oa-bg:rgba(62,207,160,0.08);--oa-border:rgba(62,207,160,0.25);
+  --red:#FF5C5C;--green:#3ECFA0;--amber:#c8a96e;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+.shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--text);border-left-color:var(--gold);background:rgba(200,169,110,.05)}
+.nav-icon{font-size:14px;width:16px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:12px 16px 0;border-top:1px solid var(--border)}
+.agent-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+.agent-dot.idle{background:var(--dim)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.agent-dot.running{animation:pulse 1.4s ease-in-out infinite}
+.sidebar-status{font-size:11px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center}
+.sidebar-last{font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:4px}
+
+/* Main */
+.main{padding:28px 32px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+.page-sub{font-size:12px;color:var(--muted);margin-bottom:24px;font-family:var(--mono)}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+.met{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.met-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+.met-val{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.met-sub{font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:3px}
+.ws-c{color:var(--ws)}.oa-c{color:var(--oa)}.gold-c{color:var(--gold)}.white-c{color:var(--text)}
+
+/* Filters */
+.filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.fbtn{padding:5px 14px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:var(--sans);transition:all .15s;letter-spacing:.04em}
+.fbtn:hover{color:var(--text);border-color:rgba(255,255,255,.3)}
+.fbtn.active{background:var(--gold);border-color:var(--gold);color:#0a0a08;font-weight:600}
+.fstatus{font-size:11px;color:var(--dim);font-family:var(--mono);margin-left:auto}
+.refresh-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--muted);padding:5px 14px;border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.refresh-btn:hover{color:var(--text);border-color:var(--gold);background:rgba(200,169,110,.08)}
+
+/* Lead cards */
+.leads-grid{display:flex;flex-direction:column;gap:8px}
+.lead-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;transition:border-color .15s}
+.lead-card:hover{border-color:var(--border2)}
+.lead-card.ws-card{border-left:3px solid var(--ws)}
+.lead-card.oa-card{border-left:3px solid var(--oa)}
+.lead-name{font-size:14px;font-weight:600;margin-bottom:3px;color:var(--text)}
+.lead-source{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:7px}
+.lead-meta{display:flex;gap:14px;font-size:11px;color:var(--muted);font-family:var(--mono);flex-wrap:wrap}
+.lead-meta span strong{color:var(--text)}
+.lead-reason{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5;font-family:var(--mono)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-family:var(--mono)}
+.tag-risk{background:rgba(255,92,92,.08);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+.tag-ws{background:var(--ws-bg);color:var(--ws);border:1px solid var(--ws-border)}
+.tag-oa{background:var(--oa-bg);color:var(--oa);border:1px solid var(--oa-border)}
+.tag-rep{background:var(--oa-bg);color:var(--oa);border:1px solid var(--oa-border)}
+.lead-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:80px}
+.lead-roi{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.roi-label{font-size:10px;color:var(--dim);font-family:var(--mono);letter-spacing:.06em}
+.rec-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;font-family:var(--mono)}
+.rec-buy{background:rgba(62,207,160,.12);color:var(--green);border:1px solid rgba(62,207,160,.25)}
+.rec-watch{background:rgba(200,169,110,.1);color:var(--gold);border:1px solid rgba(200,169,110,.25)}
+.rec-pass{background:rgba(255,92,92,.08);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+.found-at{font-size:10px;color:var(--dim);font-family:var(--mono)}
+
+/* Empty */
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+
+/* Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+
+/* Criteria */
+label{display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+input[type=text],input[type=number],input[type=email],select,textarea{width:100%;font-size:12px;padding:7px 10px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+textarea{height:64px;resize:vertical}
+select option{background:var(--bg2)}
+input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:12px}
+.val-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.vd{font-size:12px;font-family:var(--mono);color:var(--gold);min-width:56px;text-align:right}
+button.btn{font-family:var(--sans);cursor:pointer;font-size:12px;font-weight:500;border-radius:8px;border:1px solid var(--border2);padding:7px 16px;background:var(--bg3);color:var(--text);transition:all .15s}
+button.btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2)}
+button.btn-gold{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+button.btn-gold:hover{background:var(--gold2)}
+
+/* Mode toggle */
+.mode-toggle{display:flex;gap:6px;margin-bottom:16px}
+.mode-btn{flex:1;padding:10px;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.mode-btn.ws-on{background:var(--ws-bg);border-color:var(--ws-border)}
+.mode-btn.oa-on{background:var(--oa-bg);border-color:var(--oa-border)}
+.mode-btn-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.mode-btn-sub{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* Compare */
+.cmp{width:100%;border-collapse:collapse;font-size:12px}
+.cmp th{text-align:left;font-size:10px;font-family:var(--mono);color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em}
+.cmp td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.cmp tr:last-child td{border-bottom:none}
+.cmp td:first-child{color:var(--muted);font-family:var(--mono);font-size:11px}
+.cmp td:nth-child(2){color:var(--ws)}
+.cmp td:nth-child(3){color:var(--oa)}
+
+/* Pipeline stages */
+.stage{display:grid;grid-template-columns:140px 1fr 60px 80px;gap:8px;align-items:center;font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px}
+.stage-name{font-weight:500}
+.bar-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden}
+.bar{height:5px;border-radius:4px}
+.stage-count{text-align:center;color:var(--muted);font-family:var(--mono)}
+.stage-status{text-align:right}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-family:var(--mono)}
+.b-ws{background:var(--ws-bg);color:var(--ws);border:1px solid var(--ws-border)}
+.b-oa{background:var(--oa-bg);color:var(--oa);border:1px solid var(--oa-border)}
+.b-amber{background:rgba(200,169,110,.1);color:var(--gold);border:1px solid rgba(200,169,110,.25)}
+.b-gray{background:var(--bg3);color:var(--muted);border:1px solid var(--border2)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">ARBTRADE</div>
+    <div class="logo-name">Research Hub</div>
+  </div>
+  <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
+  <div class="nav-item" onclick="nav('results')"><span class="nav-icon">≡</span> Results</div>
+  <div class="nav-item" onclick="nav('criteria')"><span class="nav-icon">⊙</span> Criteria</div>
+  <div class="nav-item" onclick="nav('pipeline')"><span class="nav-icon">⇄</span> Pipeline</div>
+  <div class="nav-item" onclick="nav('compare')"><span class="nav-icon">↔</span> WS vs OA</div>
+  <div class="nav-item" onclick="window.location='index.html'"><span class="nav-icon">←</span> Landing page</div>
+  <div class="sidebar-footer">
+    <div class="sidebar-status"><span class="agent-dot" id="sdot"></span><span id="sstatus">Loading...</span></div>
+    <div class="sidebar-last" id="slast"></div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-title">Research Hub</div>
+  <div class="page-sub">Amazon wholesale & OA command center · auto-refreshes every 5 min</div>
+  <div class="metrics">
+    <div class="met"><div class="met-label">WS Leads</div><div class="met-val ws-c" id="m-ws">—</div></div>
+    <div class="met"><div class="met-label">OA Deals</div><div class="met-val oa-c" id="m-oa">—</div></div>
+    <div class="met"><div class="met-label">Best ROI</div><div class="met-val gold-c" id="m-roi">—</div></div>
+    <div class="met"><div class="met-label">Last Run</div><div class="met-val white-c" style="font-size:15px" id="m-last">—</div><div class="met-sub" id="m-sub">48h rolling window</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top BUY leads <span class="badge b-ws" id="dash-count">—</span></div>
+    <div id="dash-leads"></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="nav('results')">≡ View all results</button>
+    <button class="btn" onclick="nav('criteria')">⊙ Edit criteria</button>
+    <button class="refresh-btn" onclick="loadResults()">↺ Refresh now</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="page" id="page-results">
+  <div class="page-title">All Results</div>
+  <div class="page-sub">48-hour rolling window · new leads added every 4 hours</div>
+  <div class="filters">
+    <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+    <button class="fbtn" onclick="setFilter('wholesale',this)">Wholesale</button>
+    <button class="fbtn" onclick="setFilter('oa',this)">OA</button>
+    <button class="fbtn" onclick="setFilter('BUY',this)">BUY only</button>
+    <button class="fbtn" onclick="setFilter('WATCH',this)">WATCH</button>
+    <button class="refresh-btn" onclick="loadResults()">↺ Refresh</button>
+    <span class="fstatus" id="fstatus">—</span>
+  </div>
+  <div class="leads-grid" id="results-list"></div>
+</div>
+
+<!-- CRITERIA -->
+<div class="page" id="page-criteria">
+  <div class="page-title">Research Criteria</div>
+  <div class="page-sub">Adjust settings · save downloads new criteria.json for your agent folder</div>
+  <div class="mode-toggle">
+    <button class="mode-btn ws-on" id="mb-ws" onclick="cMode('ws')">
+      <div class="mode-btn-title" style="color:var(--ws)">Wholesale</div>
+      <div class="mode-btn-sub">Brand & distributor sourcing</div>
+    </button>
+    <button class="mode-btn" id="mb-oa" onclick="cMode('oa')">
+      <div class="mode-btn-title" style="color:var(--oa)">Online Arbitrage</div>
+      <div class="mode-btn-sub">Retail price gap scanning</div>
+    </button>
+  </div>
+  <div id="crit-ws">
+    <div class="card">
+      <div class="card-title">Wholesale filters</div>
+      <div class="g2">
+        <div class="field"><label>Min monthly sales</label><div class="val-row"><input type="range" min="50" max="2000" step="50" id="ws-sales" value="300" oninput="document.getElementById('ws-sales-v').textContent=this.value"><span class="vd" id="ws-sales-v">300</span></div></div>
+        <div class="field"><label>Min ROI %</label><div class="val-row"><input type="range" min="10" max="80" id="ws-roi" value="30" oninput="document.getElementById('ws-roi-v').textContent=this.value+'%'"><span class="vd" id="ws-roi-v">30%</span></div></div>
+        <div class="field"><label>Max sellers on listing</label><div class="val-row"><input type="range" min="1" max="30" id="ws-sellers" value="8" oninput="document.getElementById('ws-sellers-v').textContent=this.value"><span class="vd" id="ws-sellers-v">8</span></div></div>
+        <div class="field"><label>Max BSR</label><div class="val-row"><input type="range" min="1000" max="200000" step="1000" id="ws-bsr" value="50000" oninput="document.getElementById('ws-bsr-v').textContent='#'+Number(this.value).toLocaleString()"><span class="vd" id="ws-bsr-v">#50,000</span></div></div>
+      </div>
+      <div class="field"><label>Categories (comma-separated)</label><input type="text" id="ws-cats" value="Health & Household, Grocery & Gourmet"></div>
+      <div class="field"><label>Notes</label><textarea id="ws-notes" placeholder="e.g. Established brands only, prefer net-30 terms..."></textarea></div>
+    </div>
+  </div>
+  <div id="crit-oa" style="display:none">
+    <div class="card">
+      <div class="card-title">Online arbitrage filters</div>
+      <div class="g2">
+        <div class="field"><label>Min monthly sales</label><div class="val-row"><input type="range" min="50" max="2000" step="50" id="oa-sales" value="200" oninput="document.getElementById('oa-sales-v').textContent=this.value"><span class="vd" id="oa-sales-v">200</span></div></div>
+        <div class="field"><label>Min ROI %</label><div class="val-row"><input type="range" min="10" max="80" id="oa-roi" value="35" oninput="document.getElementById('oa-roi-v').textContent=this.value+'%'"><span class="vd" id="oa-roi-v">35%</span></div></div>
+        <div class="field"><label>Max sellers</label><div class="val-row"><input type="range" min="1" max="30" id="oa-sellers" value="12" oninput="document.getElementById('oa-sellers-v').textContent=this.value"><span class="vd" id="oa-sellers-v">12</span></div></div>
+        <div class="field"><label>Max BSR</label><div class="val-row"><input type="range" min="1000" max="200000" step="1000" id="oa-bsr" value="75000" oninput="document.getElementById('oa-bsr-v').textContent='#'+Number(this.value).toLocaleString()"><span class="vd" id="oa-bsr-v">#75,000</span></div></div>
+        <div class="field"><label>Min price spread ($)</label><input type="number" id="oa-spread" value="8"></div>
+        <div class="field"><label>Max buy cost ($)</label><input type="number" id="oa-maxbuy" value="35"></div>
+      </div>
+      <div class="field"><label>Categories</label><input type="text" id="oa-cats" value="Health & Household, Beauty & Personal Care"></div>
+      <div class="field"><label>Notes</label><textarea id="oa-notes" placeholder="e.g. Include clearance and coupon stacking..."></textarea></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn btn-gold" onclick="saveCriteria()">↓ Save criteria.json</button>
+    <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">Drop the downloaded file in your agent folder</span>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div class="page" id="page-pipeline">
+  <div class="page-title">Pipeline</div>
+  <div class="page-sub">Track SKUs from lead to live listing</div>
+  <div class="card">
+    <div class="card-title">Current pipeline</div>
+    <div class="stage" style="background:var(--bg3);font-size:10px;color:var(--muted)"><div>Stage</div><div>Progress</div><div style="text-align:center">SKUs</div><div style="text-align:right">Status</div></div>
+    <div class="stage"><div class="stage-name">Researching</div><div><div class="bar-wrap"><div class="bar" style="width:70%;background:var(--ws)"></div></div></div><div class="stage-count">14</div><div class="stage-status"><span class="badge b-ws">Active</span></div></div>
+    <div class="stage"><div class="stage-name">Supplier outreach</div><div><div class="bar-wrap"><div class="bar" style="width:50%;background:var(--amber)"></div></div></div><div class="stage-count">8</div><div class="stage-status"><span class="badge b-amber">Pending</span></div></div>
+    <div class="stage"><div class="stage-name">Samples ordered</div><div><div class="bar-wrap"><div class="bar" style="width:35%;background:var(--oa)"></div></div></div><div class="stage-count">5</div><div class="stage-status"><span class="badge b-gray">In transit</span></div></div>
+    <div class="stage"><div class="stage-name">PO sent</div><div><div class="bar-wrap"><div class="bar" style="width:55%;background:#639922"></div></div></div><div class="stage-count">9</div><div class="stage-status"><span class="badge b-ws">Active</span></div></div>
+    <div class="stage"><div class="stage-name">At 3PL</div><div><div class="bar-wrap"><div class="bar" style="width:40%;background:#7F77DD"></div></div></div><div class="stage-count">6</div><div class="stage-status"><span class="badge b-gray">Prepping</span></div></div>
+    <div class="stage"><div class="stage-name">Live on Amazon</div><div><div class="bar-wrap"><div class="bar" style="width:100%;background:var(--green)"></div></div></div><div class="stage-count">47</div><div class="stage-status"><span class="badge b-oa">Selling</span></div></div>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<div class="page" id="page-compare">
+  <div class="page-title">WS vs OA</div>
+  <div class="page-sub">Strategy comparison and hybrid approach</div>
+  <div class="card">
+    <table class="cmp">
+      <thead><tr><th>Factor</th><th>Wholesale</th><th>Online Arbitrage</th></tr></thead>
+      <tbody>
+        <tr><td>Startup capital</td><td>$1K–$5K+ per supplier</td><td>$200–$1K to start</td></tr>
+        <tr><td>Cash cycle</td><td>30–90 days</td><td>7–21 days</td></tr>
+        <tr><td>Typical ROI</td><td>25–40%</td><td>30–60% per unit</td></tr>
+        <tr><td>Scalability</td><td>Very high (reorders)</td><td>Moderate (deal-dependent)</td></tr>
+        <tr><td>Time to first sale</td><td>2–6 weeks</td><td>4–10 days</td></tr>
+        <tr><td>Repeatability</td><td>High — same SKU reordered</td><td>Variable by source</td></tr>
+        <tr><td>Competition</td><td>Lower (gated brands)</td><td>Higher (public pricing)</td></tr>
+        <tr><td>Best use</td><td>Long-term catalog</td><td>Fast cash flow & testing</td></tr>
+        <tr><td>Ideal mix</td><td>60% of revenue</td><td>40% of revenue</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">6-month hybrid ramp</div>
+    <div style="font-size:12px;color:var(--muted);line-height:2;font-family:var(--mono)">
+      <span style="color:var(--ws)">Month 1–2</span> — OA only. Learn FBA, build cash, find hot categories.<br>
+      <span style="color:var(--ws)">Month 3–4</span> — Use OA profits for first 2–3 wholesale accounts ($300–500 POs).<br>
+      <span style="color:var(--ws)">Month 5–6</span> — Scale winning wholesale SKUs. Keep OA for cash flow. 40/60 split.<br>
+      <span style="color:var(--oa)">Month 7+</span> — Wholesale dominates. Reinvest 70% of profits into inventory.
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+var allLeads=[];
+var currentFilter='all';
+var critMode='ws';
+
+function nav(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  document.getElementById('page-'+id).classList.add('active');
+  var map={dashboard:0,results:1,criteria:2,pipeline:3,compare:4};
+  if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
+}
+
+function cMode(m){
+  critMode=m;
+  document.getElementById('mb-ws').className='mode-btn'+(m==='ws'?' ws-on':'');
+  document.getElementById('mb-oa').className='mode-btn'+(m==='oa'?' oa-on':'');
+  document.getElementById('crit-ws').style.display=m==='ws'?'block':'none';
+  document.getElementById('crit-oa').style.display=m==='oa'?'block':'none';
+}
+
+function getRoi(val){
+  try{return parseInt(String(val).replace('%','').split('-')[0].trim())||0}catch(e){return 0}
+}
+
+function getRisks(val){
+  if(!val) return [];
+  if(Array.isArray(val)) return val;
+  return [String(val)];
+}
+
+function renderCard(l){
+  var roi=l.roi||'—';
+  var roiNum=getRoi(roi);
+  var roiColor=roiNum>=40?'var(--green)':roiNum>=30?'var(--gold)':'var(--red)';
+  var typeClass=l.type==='oa'?'oa-card':'ws-card';
+  var typeBadge=l.type==='oa'?'<span class="tag tag-oa">OA</span>':'<span class="tag tag-ws">WS</span>';
+  var recClass=l.recommendation==='BUY'?'rec-buy':l.recommendation==='WATCH'?'rec-watch':'rec-pass';
+  var risks=getRisks(l.risk_flags).map(function(r){return '<span class="tag tag-risk">'+r+'</span>'}).join('');
+  var foundAt=l.found_at?new Date(l.found_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  return '<div class="lead-card '+typeClass+'">' +
+    '<div>' +
+      '<div class="lead-name">'+(l.name||'—')+'</div>' +
+      '<div class="lead-source">📍 '+(l.source||'—')+(foundAt?' · '+foundAt:'')+'</div>' +
+      '<div class="lead-meta">' +
+        '<span>Buy: <strong>'+(l.buy_cost||'—')+'</strong></span>' +
+        '<span>Sell: <strong>'+(l.sell_price||'—')+'</strong></span>' +
+        '<span>BSR: <strong>'+(l.bsr||'—')+'</strong></span>' +
+        '<span>Sellers: <strong>'+(l.sellers||'—')+'</strong></span>' +
+      '</div>' +
+      (l.reason?'<div class="lead-reason">→ '+l.reason+'</div>':'') +
+      '<div class="tags">'+typeBadge+risks+(l.replenishable===true?'<span class="tag tag-rep">♻ Replenishable</span>':'')+'</div>' +
+    '</div>' +
+    '<div class="lead-right">' +
+      '<div class="lead-roi" style="color:'+roiColor+'">'+roi+'</div>' +
+      '<div class="roi-label">ROI</div>' +
+      '<span class="rec-badge '+recClass+'">'+(l.recommendation||'—')+'</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderLeads(leads,containerId,max){
+  var el=document.getElementById(containerId);
+  if(!leads||leads.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">◈</div>No leads match this filter.</div>';return}
+  var shown=max?leads.slice(0,max):leads;
+  el.innerHTML='<div class="leads-grid">'+shown.map(renderCard).join('')+'</div>';
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.fbtn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  var filtered=allLeads.filter(function(l){
+    if(f==='wholesale') return l.type==='wholesale';
+    if(f==='oa') return l.type==='oa';
+    if(f==='BUY') return l.recommendation==='BUY';
+    if(f==='WATCH') return l.recommendation==='WATCH';
+    return true;
+  });
+  document.getElementById('fstatus').textContent=filtered.length+' leads';
+  renderLeads(filtered,'results-list',null);
+}
+
+function loadResults(){
+  fetch('results.json?t='+Date.now())
+    .then(function(r){return r.json()})
+    .then(function(data){
+      allLeads=data.leads||[];
+      // Metrics
+      document.getElementById('m-ws').textContent=data.wholesale_count||0;
+      document.getElementById('m-oa').textContent=data.oa_count||0;
+      document.getElementById('m-roi').textContent=(data.best_roi||0)+'%';
+      if(data.last_run){
+        var d=new Date(data.last_run);
+        document.getElementById('m-last').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        document.getElementById('m-sub').textContent='48h window · '+allLeads.length+' total';
+      }
+      // Sidebar
+      document.getElementById('sdot').className='agent-dot';
+      document.getElementById('sstatus').textContent='Last run complete';
+      document.getElementById('slast').textContent=data.last_run?new Date(data.last_run).toLocaleDateString():'';
+      // Dashboard top leads — BUY only
+      var buys=allLeads.filter(function(l){return l.recommendation==='BUY'});
+      document.getElementById('dash-count').textContent=buys.length+' BUY';
+      renderLeads(buys,'dash-leads',3);
+      // Results page
+      document.getElementById('fstatus').textContent=allLeads.length+' leads';
+      renderLeads(allLeads,'results-list',null);
+    })
+    .catch(function(){
+      document.getElementById('sstatus').textContent='No results yet';
+      document.getElementById('sdot').className='agent-dot idle';
+      document.getElementById('dash-leads').innerHTML='<div class="empty"><div class="empty-icon">◈</div>Run python3 agent.py to start scanning.</div>';
+    });
+}
+
+function saveCriteria(){
+  var obj={
+    last_updated:new Date().toISOString().split('T')[0],
+    wholesale:{enabled:true,min_monthly_sales:parseInt(document.getElementById('ws-sales').value),min_roi_percent:parseInt(document.getElementById('ws-roi').value),max_sellers:parseInt(document.getElementById('ws-sellers').value),max_bsr:parseInt(document.getElementById('ws-bsr').value),categories:document.getElementById('ws-cats').value.split(',').map(function(s){return s.trim()}),notes:document.getElementById('ws-notes').value},
+    online_arbitrage:{enabled:true,min_monthly_sales:parseInt(document.getElementById('oa-sales').value),min_roi_percent:parseInt(document.getElementById('oa-roi').value),max_sellers:parseInt(document.getElementById('oa-sellers').value),max_bsr:parseInt(document.getElementById('oa-bsr').value),min_price_spread:parseFloat(document.getElementById('oa-spread').value),max_buy_cost:parseFloat(document.getElementById('oa-maxbuy').value),categories:document.getElementById('oa-cats').value.split(',').map(function(s){return s.trim()}),active_sources:["Walgreens clearance","CVS weekly sales","Vitacost sale items","iHerb promotions","Target Circle deals","Walmart Clearance"],notes:document.getElementById('oa-notes').value},
+    agent:{anthropic_api_key:"",scan_interval_hours:4,notify_email:"",notify_slack_webhook:"",max_leads_per_run:10,auto_analyze:true}
+  };
+  var blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='criteria.json';a.click();
+}
+
+// Auto-load on open
+loadResults();
+// Auto-refresh every 5 minutes
+setInterval(loadResults,300000);
+</script>
+</body>
+</html>
