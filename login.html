@@ -110,10 +110,10 @@ input:focus{border-color:var(--gold)}
     </div>
 
     <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);font-family:var(--mono)">
-      7-day free trial <span class="trial-badge">No charge today</span>
+      7-day trial <span class="trial-badge">Card required · Charges day 8</span>
     </div>
 
-    <button class="btn-submit" onclick="handleSignup()" id="signup-btn" style="margin-top:16px">Start free trial →</button>
+    <button class="btn-submit" onclick="handleSignup()" id="signup-btn" style="margin-top:16px">Start 7-day trial →</button>
     <div class="msg" id="signup-msg"></div>
   </div>
 </div>
@@ -137,7 +137,7 @@ function setMode(m) {
   document.getElementById('login-form').style.display = m==='login'?'block':'none';
   document.getElementById('signup-form').style.display = m==='signup'?'block':'none';
   document.getElementById('card-title').textContent = m==='login'?'Welcome back':'Create your account';
-  document.getElementById('card-sub').textContent = m==='login'?'Sign in to access your leads':'Start your 7-day free trial today';
+  document.getElementById('card-sub').textContent = m==='login'?'Sign in to access your leads':'Start your 7-day trial today';
 }
 
 function selectPlan(plan, el) {
@@ -222,7 +222,7 @@ async function handleSignup() {
     }
   } catch(e) {
     showMsg('signup-msg', e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Start free trial →';
+    btn.disabled = false; btn.textContent = 'Start 7-day trial →';
   }
 }
 
