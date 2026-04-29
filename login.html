@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f2efe8;--muted:#888884;--dim:#555552;
+  --gold:#c8a96e;--gold2:#e8c98a;
+  --ws:#4A9EFF;--oa:#3ECFA0;
+  --red:#FF5C5C;--green:#3ECFA0;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,169,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(200,169,110,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.logo{font-size:13px;font-family:var(--mono);color:var(--gold);letter-spacing:.15em;margin-bottom:40px;text-align:center}
+.card{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:36px 40px;position:relative}
+.card::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.card-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.card-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:28px}
+.tabs{display:flex;gap:4px;background:var(--bg3);border-radius:8px;padding:4px;margin-bottom:24px}
+.tab{flex:1;padding:7px;text-align:center;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--sans);transition:all .15s}
+.tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2)}
+.field{margin-bottom:16px}
+label{display:block;font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:5px;letter-spacing:.06em;text-transform:uppercase}
+input{width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none;transition:border .15s}
+input:focus{border-color:var(--gold)}
+.btn-submit{width:100%;padding:11px;background:var(--gold);border:none;border-radius:8px;color:#000;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px;letter-spacing:.02em}
+.btn-submit:hover{background:var(--gold2)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;font-size:11px;color:var(--dim);font-family:var(--mono)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.plan{border:1px solid var(--border);border-radius:8px;padding:12px 10px;cursor:pointer;transition:all .15s;text-align:center}
+.plan:hover{border-color:var(--gold);background:rgba(200,169,110,.04)}
+.plan.selected{border-color:var(--gold);background:rgba(200,169,110,.08)}
+.plan-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.plan-price{font-size:11px;font-family:var(--mono);color:var(--gold)}
+.plan-desc{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.msg{font-size:12px;font-family:var(--mono);padding:10px 12px;border-radius:8px;margin-top:12px;display:none}
+.msg.error{background:rgba(255,92,92,.08);border:1px solid rgba(255,92,92,.2);color:var(--red)}
+.msg.success{background:rgba(62,207,160,.08);border:1px solid rgba(62,207,160,.2);color:var(--green)}
+.msg.show{display:block}
+.footer-link{text-align:center;margin-top:20px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.footer-link a{color:var(--gold);text-decoration:none}
+.trial-badge{display:inline-block;background:rgba(62,207,160,.1);border:1px solid rgba(62,207,160,.2);color:var(--green);font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:20px;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="logo">ARBTRADE — Research Hub</div>
+
+<div class="card">
+  <div class="card-title" id="card-title">Welcome back</div>
+  <div class="card-sub" id="card-sub">Sign in to your account to access your leads</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setMode('login')">Sign in</button>
+    <button class="tab" onclick="setMode('signup')">Create account</button>
+  </div>
+
+  <!-- Login form -->
+  <div id="login-form">
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-submit" onclick="handleLogin()" id="login-btn">Sign in →</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- Signup form -->
+  <div id="signup-form" style="display:none">
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password">
+    </div>
+
+    <div class="divider">Choose your plan</div>
+
+    <div class="plans" id="plan-selector">
+      <div class="plan selected" onclick="selectPlan('starter',this)">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$47/mo</div>
+        <div class="plan-desc">4hr scans</div>
+      </div>
+      <div class="plan" onclick="selectPlan('pro',this)">
+        <div class="plan-name" style="color:var(--oa)">Pro</div>
+        <div class="plan-price" style="color:var(--oa)">$97/mo</div>
+        <div class="plan-desc">2hr scans</div>
+      </div>
+      <div class="plan" onclick="selectPlan('agency',this)">
+        <div class="plan-name" style="color:var(--ws)">Agency</div>
+        <div class="plan-price" style="color:var(--ws)">$197/mo</div>
+        <div class="plan-desc">Hourly scans</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);font-family:var(--mono)">
+      7-day free trial <span class="trial-badge">No charge today</span>
+    </div>
+
+    <button class="btn-submit" onclick="handleSignup()" id="signup-btn" style="margin-top:16px">Start free trial →</button>
+    <div class="msg" id="signup-msg"></div>
+  </div>
+</div>
+
+<div class="footer-link">
+  <a href="index.html">← Back to home</a> &nbsp;·&nbsp;
+  <a href="terms.html">Terms</a> &nbsp;·&nbsp;
+  <a href="privacy.html">Privacy</a>
+</div>
+
+<script>
+var API = 'https://arbtrade-saas-production.up.railway.app';
+var selectedPlan = 'starter';
+var mode = 'login';
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach(function(t,i) {
+    t.classList.toggle('active', (i===0&&m==='login')||(i===1&&m==='signup'));
+  });
+  document.getElementById('login-form').style.display = m==='login'?'block':'none';
+  document.getElementById('signup-form').style.display = m==='signup'?'block':'none';
+  document.getElementById('card-title').textContent = m==='login'?'Welcome back':'Create your account';
+  document.getElementById('card-sub').textContent = m==='login'?'Sign in to access your leads':'Start your 7-day free trial today';
+}
+
+function selectPlan(plan, el) {
+  selectedPlan = plan;
+  document.querySelectorAll('.plan').forEach(function(p) { p.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+function showMsg(id, text, type) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type + ' show';
+}
+
+async function handleLogin() {
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  if (!email || !password) { showMsg('login-msg','Please fill in all fields','error'); return; }
+  var btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    var resp = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Login failed');
+    localStorage.setItem('arbtrade_token', data.access_token);
+    localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
+    showMsg('login-msg', 'Success! Redirecting...', 'success');
+    setTimeout(function() { window.location.href = 'dashboard.html'; }, 800);
+  } catch(e) {
+    showMsg('login-msg', e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Sign in →';
+  }
+}
+
+async function handleSignup() {
+  var email = document.getElementById('signup-email').value.trim();
+  var password = document.getElementById('signup-password').value;
+  if (!email || !password) { showMsg('signup-msg','Please fill in all fields','error'); return; }
+  if (password.length < 8) { showMsg('signup-msg','Password must be at least 8 characters','error'); return; }
+  var btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try {
+    // Create account
+    var resp = await fetch(API + '/auth/signup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Signup failed');
+
+    // Store token
+    if (data.session) {
+      localStorage.setItem('arbtrade_token', data.session.access_token);
+      localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
+    }
+
+    // Redirect to Stripe checkout
+    btn.textContent = 'Redirecting to checkout...';
+    var checkoutResp = await fetch(API + '/billing/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + data.session.access_token
+      },
+      body: JSON.stringify({
+        tier: selectedPlan,
+        success_url: window.location.origin + '/dashboard.html',
+        cancel_url: window.location.origin + '/login.html'
+      })
+    });
+    var checkoutData = await checkoutResp.json();
+    if (checkoutData.checkout_url) {
+      window.location.href = checkoutData.checkout_url;
+    } else {
+      // If checkout fails just go to dashboard (trial)
+      window.location.href = 'dashboard.html';
+    }
+  } catch(e) {
+    showMsg('signup-msg', e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Start free trial →';
+  }
+}
+
+// Allow Enter key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (mode === 'login') handleLogin();
+    else handleSignup();
+  }
+});
+
+// Check if already logged in
+var token = localStorage.getItem('arbtrade_token');
+if (token) window.location.href = 'dashboard.html';
+</script>
+</body>
+</html>
