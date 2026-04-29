@@ -193,10 +193,17 @@ async function handleSignup() {
     var data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || 'Signup failed');
 
-    // Store token
-    if (data.session) {
-      localStorage.setItem('arbtrade_token', data.session.access_token);
+    // Store token safely
+    var accessToken = (data.session && data.session.access_token) ? data.session.access_token : (data.access_token || '');
+    if (accessToken) {
+      localStorage.setItem('arbtrade_token', accessToken);
       localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
+    }
+
+    if (!accessToken) {
+      showMsg('signup-msg', 'Account created! Please sign in to continue.', 'success');
+      btn.disabled = false; btn.textContent = 'Start 7-day trial →';
+      return;
     }
 
     // Redirect to Stripe checkout
@@ -205,7 +212,7 @@ async function handleSignup() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + data.session.access_token
+        'Authorization': 'Bearer ' + accessToken
       },
       body: JSON.stringify({
         tier: selectedPlan,
