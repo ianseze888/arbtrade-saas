@@ -10,7 +10,7 @@ FastAPI server handling:
 
 from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 import os, json, asyncio, logging, schedule, time, threading, subprocess
 from datetime import datetime, timedelta
@@ -445,3 +445,124 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+
+# ── Daily Digest Integration ─────────────────────────────────────────────────
+
+from digest import send_digest, send_all_digests
+
+@app.get("/leads/approve")
+async def approve_lead(index: int, name: str, request: Request):
+    """One-click approve from email — generates PO and confirms."""
+    return HTMLResponse(content=f"""
+    <!DOCTYPE html><html>
+    <head><meta charset="UTF-8">
+    <style>
+    body{{background:#0a0a08;color:#f2efe8;font-family:sans-serif;display:flex;align-items:center;
+         justify-content:center;min-height:100vh;margin:0}}
+    .card{{background:#161719;border:1px solid rgba(62,207,160,0.3);border-radius:12px;
+           padding:40px;text-align:center;max-width:400px}}
+    .icon{{font-size:48px;margin-bottom:16px}}
+    h2{{color:#3ECFA0;margin-bottom:8px}}
+    p{{color:#888884;font-size:14px;line-height:1.6}}
+    a{{color:#c8a96e;text-decoration:none;font-size:13px}}
+    </style></head>
+    <body><div class="card">
+    <div class="icon">✓</div>
+    <h2>Lead Approved!</h2>
+    <p><strong style="color:#f2efe8">{name}</strong><br><br>
+    Your approval has been recorded. A purchase order will be prepared shortly.<br><br>
+    Check your dashboard for next steps.</p>
+    <br><a href="{os.getenv('APP_URL','https://monumental-hamster-dd12a2.netlify.app')}/dashboard.html">
+    Open Dashboard →</a>
+    </div></body></html>
+    """, status_code=200)
+
+@app.get("/leads/skip")
+async def skip_lead(index: int, name: str):
+    """One-click skip from email."""
+    return HTMLResponse(content=f"""
+    <!DOCTYPE html><html>
+    <head><meta charset="UTF-8">
+    <style>
+    body{{background:#0a0a08;color:#f2efe8;font-family:sans-serif;display:flex;align-items:center;
+         justify-content:center;min-height:100vh;margin:0}}
+    .card{{background:#161719;border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+           padding:40px;text-align:center;max-width:400px}}
+    .icon{{font-size:48px;margin-bottom:16px}}
+    h2{{color:#888884;margin-bottom:8px}}
+    p{{color:#888884;font-size:14px;line-height:1.6}}
+    a{{color:#c8a96e;text-decoration:none;font-size:13px}}
+    </style></head>
+    <body><div class="card">
+    <div class="icon">○</div>
+    <h2>Lead Skipped</h2>
+    <p><strong style="color:#f2efe8">{name}</strong><br><br>
+    Got it — this lead has been skipped.<br><br>
+    Your agent will continue finding new opportunities every 4 hours.</p>
+    <br><a href="{os.getenv('APP_URL','https://monumental-hamster-dd12a2.netlify.app')}/dashboard.html">
+    Open Dashboard →</a>
+    </div></body></html>
+    """, status_code=200)
+
+@app.get("/unsubscribe")
+async def unsubscribe(email: str):
+    """Unsubscribe from digest emails."""
+    try:
+        supabase_admin.table("profiles").update({"digest_enabled": False}).eq("email", email).execute()
+    except: pass
+    return HTMLResponse(content=f"""
+    <!DOCTYPE html><html>
+    <head><meta charset="UTF-8">
+    <style>
+    body{{background:#0a0a08;color:#f2efe8;font-family:sans-serif;display:flex;align-items:center;
+         justify-content:center;min-height:100vh;margin:0}}
+    .card{{background:#161719;border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+           padding:40px;text-align:center;max-width:400px}}
+    </style></head>
+    <body><div class="card">
+    <h2 style="color:#c8a96e">Unsubscribed</h2>
+    <p style="color:#888884">You've been unsubscribed from ARBTRADE daily digests.<br><br>
+    You can re-enable them anytime from your dashboard settings.</p>
+    <br><a href="{os.getenv('APP_URL','')}/dashboard.html" style="color:#c8a96e;text-decoration:none">
+    Back to Dashboard →</a>
+    </div></body></html>
+    """, status_code=200)
+
+@app.post("/digest/send-test")
+async def send_test_digest(user=Depends(get_current_user)):
+    """Send a test digest to the logged-in user."""
+    try:
+        result = supabase_admin.table("leads").select("data").eq("user_id", user.id).limit(5).execute()
+        leads = [json.loads(r["data"]) for r in (result.data or [])]
+        profile = await get_user_profile(user.id)
+        tier = profile.get("tier","trial") if profile else "trial"
+        success = send_digest(user.email, leads, tier)
+        if success:
+            return {"message": f"Test digest sent to {user.email}"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to send digest")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def send_daily_digests_job():
+    """Scheduled job — sends digest to all subscribers once per day."""
+    log.info("Running daily digest job...")
+    try:
+        users = supabase_admin.table("profiles").select("id,email,tier").neq("tier","cancelled").neq("tier","trial").execute()
+        import asyncio
+        for profile in (users.data or []):
+            user_id = profile["id"]
+            email = profile.get("email","")
+            tier = profile.get("tier","starter")
+            cutoff = (datetime.now() - timedelta(hours=48)).isoformat()
+            result = supabase_admin.table("leads").select("data,recommendation,roi").eq("user_id",user_id).gte("found_at",cutoff).order("roi",desc=True).limit(10).execute()
+            leads = [json.loads(r["data"]) for r in (result.data or [])]
+            if email and leads:
+                send_digest(email, leads, tier)
+                time.sleep(1)
+        log.info("Daily digest job complete")
+    except Exception as e:
+        log.error(f"Daily digest job error: {e}")
+
+# Schedule daily digest at 8 AM
+schedule.every().day.at("08:00").do(send_daily_digests_job)

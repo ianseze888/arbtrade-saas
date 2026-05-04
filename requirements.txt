@@ -6,3 +6,4 @@ schedule==1.2.2
 python-dotenv==1.2.2
 stripe==15.1.0
 pydantic>=2.9.0
+sendgrid==6.11.0
