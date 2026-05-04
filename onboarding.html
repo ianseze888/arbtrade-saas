@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — New Seller Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f2efe8;--muted:#888884;--dim:#555552;
+  --gold:#c8a96e;--gold2:#e8c98a;
+  --ws:#4A9EFF;--ws-bg:rgba(74,158,255,0.08);
+  --oa:#3ECFA0;--oa-bg:rgba(62,207,160,0.08);
+  --red:#FF5C5C;--green:#3ECFA0;--amber:#c8a96e;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 32px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:100}
+.logo{font-size:15px;font-weight:700;color:var(--gold);letter-spacing:.08em;text-decoration:none}
+.nav-link{font-size:12px;color:var(--muted);text-decoration:none;font-family:var(--mono)}
+.nav-link:hover{color:var(--text)}
+.main{max-width:900px;margin:0 auto;padding:48px 32px}
+.hero{text-align:center;margin-bottom:60px}
+.hero-eye{font-size:11px;font-family:var(--mono);color:var(--gold);letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px}
+.hero-title{font-size:36px;font-weight:700;letter-spacing:-.02em;margin-bottom:12px}
+.hero-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:560px;margin:0 auto}
+
+/* Path selector */
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:48px}
+.path-card{border:1px solid var(--border);border-radius:12px;padding:24px;cursor:pointer;transition:all .2s;text-align:left}
+.path-card:hover{border-color:var(--gold);background:rgba(200,169,110,.04)}
+.path-card.active{border-color:var(--gold);background:rgba(200,169,110,.06)}
+.path-card.oa-active{border-color:var(--oa);background:var(--oa-bg)}
+.path-icon{font-size:28px;margin-bottom:12px}
+.path-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.path-sub{font-size:12px;color:var(--muted);font-family:var(--mono);line-height:1.6}
+.path-tag{display:inline-block;font-size:10px;font-family:var(--mono);padding:3px 9px;border-radius:20px;margin-top:10px}
+.tag-ws{background:var(--ws-bg);color:var(--ws);border:1px solid rgba(74,158,255,.25)}
+.tag-oa{background:var(--oa-bg);color:var(--oa);border:1px solid rgba(62,207,160,.25)}
+.tag-rec{background:rgba(200,169,110,.1);color:var(--gold);border:1px solid rgba(200,169,110,.25)}
+
+/* Steps */
+.steps-section{display:none}
+.steps-section.active{display:block}
+.section-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.section-sub{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:32px}
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:12px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;transition:border-color .15s}
+.step-card:hover{border-color:var(--border2)}
+.step-card.completed{border-color:rgba(62,207,160,.3);background:rgba(62,207,160,.03)}
+.step-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:var(--mono);flex-shrink:0;border:1px solid var(--border2);color:var(--muted)}
+.step-card.completed .step-num{background:rgba(62,207,160,.15);border-color:rgba(62,207,160,.3);color:var(--green)}
+.step-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.step-body{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px}
+.step-action{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.btn{font-family:var(--sans);cursor:pointer;font-size:12px;font-weight:500;border-radius:8px;border:1px solid var(--border2);padding:7px 16px;background:var(--bg3);color:var(--text);transition:all .15s}
+button.btn:hover{background:rgba(255,255,255,.07)}
+button.btn-gold{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+button.btn-gold:hover{background:var(--gold2)}
+button.btn-green{background:rgba(62,207,160,.1);border-color:rgba(62,207,160,.3);color:var(--green)}
+button.btn-green:hover{background:rgba(62,207,160,.2)}
+.check-btn{background:rgba(62,207,160,.08);border:1px solid rgba(62,207,160,.2);color:var(--green);font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;font-family:var(--mono);transition:all .15s}
+.check-btn:hover{background:rgba(62,207,160,.15)}
+
+/* Email generator */
+.email-box{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:16px;margin-top:12px;display:none}
+.email-box.show{display:block}
+.email-subject{font-size:12px;font-family:var(--mono);color:var(--gold);margin-bottom:8px}
+.email-body{font-size:12px;font-family:var(--mono);color:var(--muted);line-height:1.8;white-space:pre-wrap}
+.copy-btn{background:var(--bg2);border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:var(--mono);transition:all .15s;margin-top:10px}
+.copy-btn:hover{color:var(--text);border-color:var(--gold)}
+
+/* Tracker */
+.tracker{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:48px}
+.tracker-title{font-size:13px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.tracker-steps{display:flex;gap:0;position:relative}
+.tracker-steps::before{content:'';position:absolute;top:14px;left:14px;right:14px;height:1px;background:var(--border2);z-index:0}
+.tracker-step{flex:1;text-align:center;position:relative;z-index:1}
+.tracker-dot{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:11px;color:var(--muted);transition:all .3s}
+.tracker-step.done .tracker-dot{background:rgba(62,207,160,.15);border-color:rgba(62,207,160,.4);color:var(--green)}
+.tracker-step.active .tracker-dot{background:rgba(200,169,110,.15);border-color:var(--gold);color:var(--gold)}
+.tracker-label{font-size:10px;font-family:var(--mono);color:var(--dim)}
+.tracker-step.done .tracker-label{color:var(--green)}
+.tracker-step.active .tracker-label{color:var(--gold)}
+
+/* Resources */
+.resources{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:32px}
+.resource-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .15s}
+.resource-card:hover{border-color:var(--gold)}
+.resource-icon{font-size:20px;margin-bottom:8px}
+.resource-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.resource-sub{font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.5}
+
+/* Progress bar */
+.progress-wrap{background:var(--bg3);border-radius:4px;height:4px;overflow:hidden;margin-bottom:24px}
+.progress-bar{height:4px;border-radius:4px;background:var(--gold);transition:width .4s ease}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:32px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.modal-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:20px}
+textarea.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px;font-size:12px;font-family:var(--mono);color:var(--text);resize:vertical;height:200px;line-height:1.7}
+input.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--sans);color:var(--text);margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">ARBTRADE</a>
+  <div style="display:flex;gap:16px;align-items:center">
+    <a href="dashboard.html" class="nav-link">← Dashboard</a>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eye">New Seller Guide</div>
+    <div class="hero-title">From lead to live listing 🚀</div>
+    <div class="hero-sub">Step-by-step guidance for turning your ARBTRADE leads into real Amazon sales. Choose your sourcing path below.</div>
+  </div>
+
+  <!-- Progress tracker -->
+  <div class="tracker">
+    <div class="tracker-title">
+      <span>Your progress</span>
+      <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="progress-text">0 of 6 steps complete</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="tracker-steps" id="tracker-steps">
+      <div class="tracker-step active" id="ts-0"><div class="tracker-dot">1</div><div class="tracker-label">Choose path</div></div>
+      <div class="tracker-step" id="ts-1"><div class="tracker-dot">2</div><div class="tracker-label">Contact supplier</div></div>
+      <div class="tracker-step" id="ts-2"><div class="tracker-dot">3</div><div class="tracker-label">Get approved</div></div>
+      <div class="tracker-step" id="ts-3"><div class="tracker-dot">4</div><div class="tracker-label">Place order</div></div>
+      <div class="tracker-step" id="ts-4"><div class="tracker-dot">5</div><div class="tracker-label">Ship to 3PL</div></div>
+      <div class="tracker-step" id="ts-5"><div class="tracker-dot">6</div><div class="tracker-label">Go live!</div></div>
+    </div>
+  </div>
+
+  <!-- Path selector -->
+  <div class="paths">
+    <div class="path-card" id="path-ws" onclick="selectPath('ws')">
+      <div class="path-icon">🏭</div>
+      <div class="path-title">Wholesale sourcing</div>
+      <div class="path-sub">Buy directly from brands and distributors at wholesale prices. More setup required but highly repeatable and scalable.</div>
+      <span class="path-tag tag-ws">Recommended for scaling</span>
+    </div>
+    <div class="path-card" id="path-oa" onclick="selectPath('oa')">
+      <div class="path-icon">🛍️</div>
+      <div class="path-title">Online arbitrage</div>
+      <div class="path-sub">Buy products on sale at retail stores and flip them on Amazon. Fast cash cycle, low capital needed. Perfect for beginners.</div>
+      <span class="path-tag tag-rec">Start here if you're new</span>
+    </div>
+  </div>
+
+  <!-- Wholesale Steps -->
+  <div class="steps-section" id="ws-steps">
+    <div class="section-title">Wholesale sourcing — step by step</div>
+    <div class="section-sub">Follow these steps after getting a BUY lead from your ARBTRADE dashboard</div>
+
+    <!-- Step 1 -->
+    <div class="step-card" id="ws-step-1">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Verify the lead on Amazon</div>
+        <div class="step-body">Before contacting any supplier, confirm the product is still a good opportunity. Check the current Amazon price, seller count, and BSR. Make sure the buy box is rotating between sellers (not dominated by Amazon itself).</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://www.amazon.com/s?k='+encodeURIComponent(currentLead),'_blank')">Search on Amazon →</button>
+          <button class="btn" onclick="window.open('https://keepa.com','_blank')">Check Keepa →</button>
+          <button class="check-btn" onclick="markDone('ws-step-1',1)">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card" id="ws-step-2">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Find the supplier contact</div>
+        <div class="step-body">Your lead includes a suggested source (Faire, RangeMe, Wholesale Central). Click below to find the brand's wholesale contact. Look for a "Wholesale" or "Trade" link on the brand's website, or search the distributor platforms directly.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://www.faire.com','_blank')">Search Faire →</button>
+          <button class="btn" onclick="window.open('https://www.rangeme.com','_blank')">Search RangeMe →</button>
+          <button class="btn" onclick="window.open('https://www.wholesalecentral.com','_blank')">Wholesale Central →</button>
+          <button class="check-btn" onclick="markDone('ws-step-2',2)">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card" id="ws-step-3">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Send account opening email</div>
+        <div class="step-body">Use the pre-written email below to contact the supplier. Personalize your business name and store details. Professional outreach dramatically increases your approval rate.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="toggleEmail('ws-email')">Generate email →</button>
+          <button class="check-btn" onclick="markDone('ws-step-3',3)">✓ Sent</button>
+        </div>
+        <div class="email-box" id="ws-email">
+          <div class="email-subject">Subject: Wholesale Account Application — [Your Business Name]</div>
+          <div class="email-body" id="ws-email-body"></div>
+          <button class="copy-btn" onclick="copyEmail('ws-email-body')">Copy email</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card" id="ws-step-4">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Get approved and place your first order</div>
+        <div class="step-body">Most suppliers respond within 2-5 business days. Once approved, start with a small test order — typically $300-500 minimum. This lets you verify the product quality and sales velocity before scaling up.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="showPOModal()">Generate purchase order →</button>
+          <button class="check-btn" onclick="markDone('ws-step-4',4)">✓ Order placed</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-card" id="ws-step-5">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Ship to your 3PL for FBA prep</div>
+        <div class="step-body">Give your supplier your 3PL's address as the ship-to location. Your 3PL will receive the inventory, count it, apply FNSKU labels, poly bag if needed, and ship to Amazon's fulfillment center. Typical 3PL turnaround is 2-3 business days.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="show3PLModal()">Generate 3PL instructions →</button>
+          <button class="btn" onclick="window.open('https://sellercentral.amazon.com','_blank')">Create FBA shipment →</button>
+          <button class="check-btn" onclick="markDone('ws-step-5',5)">✓ Shipped to 3PL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step-card" id="ws-step-6">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Go live on Amazon! 🎉</div>
+        <div class="step-body">Once Amazon receives your inventory it goes live within 1-3 business days. Monitor your listing for the first 2 weeks — check buy box ownership, pricing, and early sales velocity. Set a reorder reminder for when you hit 30 days of stock remaining.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://sellercentral.amazon.com','_blank')">Monitor in Seller Central →</button>
+          <button class="btn btn-green" onclick="markDone('ws-step-6',6)">🎉 We're live!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OA Steps -->
+  <div class="steps-section" id="oa-steps">
+    <div class="section-title">Online arbitrage — step by step</div>
+    <div class="section-sub">The fastest path from lead to sales. No supplier relationships needed.</div>
+
+    <!-- OA Step 1 -->
+    <div class="step-card" id="oa-step-1">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Verify the deal is still live</div>
+        <div class="step-body">OA deals move fast. Before buying, confirm the sale price is still active on the source website AND verify the current Amazon selling price hasn't dropped. Check that you're not restricted from selling this product.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://www.amazon.com','_blank')">Check Amazon price →</button>
+          <button class="btn" onclick="window.open('https://keepa.com','_blank')">Check price history →</button>
+          <button class="check-btn" onclick="markDone('oa-step-1',1)">✓ Verified</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OA Step 2 -->
+    <div class="step-card" id="oa-step-2">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Check if you can sell it</div>
+        <div class="step-body">In Seller Central go to Add a Product, search the ASIN, and confirm you're not restricted. Some brands and categories require approval. If restricted, skip this lead and move to the next one.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://sellercentral.amazon.com/product-search','_blank')">Check in Seller Central →</button>
+          <button class="check-btn" onclick="markDone('oa-step-2',2)">✓ Cleared to sell</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OA Step 3 -->
+    <div class="step-card" id="oa-step-3">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Buy the product</div>
+        <div class="step-body">Purchase from the source identified in your lead (Walgreens, CVS, iHerb, etc.). Buy enough units to make the prep and shipping fees worth it — typically 10-20 units minimum. Use cashback apps like Rakuten for extra margin.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://www.rakuten.com','_blank')">Get cashback via Rakuten →</button>
+          <button class="check-btn" onclick="markDone('oa-step-3',3)">✓ Purchased</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OA Step 4 -->
+    <div class="step-card" id="oa-step-4">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Ship to your 3PL or prep yourself</div>
+        <div class="step-body">For OA you have two options — ship directly to your 3PL for FNSKU labeling and FBA prep, or prep it yourself at home (label, poly bag, box). Self-prep saves money when starting out. 3PL makes sense when volume grows.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="show3PLModal()">Generate 3PL instructions →</button>
+          <button class="btn" onclick="showSelfPrepGuide()">Self-prep checklist →</button>
+          <button class="check-btn" onclick="markDone('oa-step-4',4)">✓ Prepped</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OA Step 5 -->
+    <div class="step-card" id="oa-step-5">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Create FBA inbound shipment</div>
+        <div class="step-body">In Seller Central create an inbound shipment for your products. Amazon will assign a fulfillment center. Print the shipping labels and attach them to your boxes before sending.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://sellercentral.amazon.com','_blank')">Create shipment →</button>
+          <button class="check-btn" onclick="markDone('oa-step-5',5)">✓ Shipment created</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OA Step 6 -->
+    <div class="step-card" id="oa-step-6">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Go live and monitor! 🎉</div>
+        <div class="step-body">Amazon receives your inventory and you go live within 1-3 days. Monitor the buy box and pricing. If the deal was replenishable, set an alert to buy again when stock runs low. OA is all about finding deals that repeat.</div>
+        <div class="step-action">
+          <button class="btn btn-gold" onclick="window.open('https://sellercentral.amazon.com','_blank')">Monitor in Seller Central →</button>
+          <button class="btn btn-green" onclick="markDone('oa-step-6',6)">🎉 We're live!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resources -->
+  <div style="margin-top:48px">
+    <div style="font-size:16px;font-weight:600;margin-bottom:6px">Helpful resources</div>
+    <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:20px">Tools and links every Amazon seller needs</div>
+    <div class="resources">
+      <div class="resource-card">
+        <div class="resource-icon">📊</div>
+        <div class="resource-title">Keepa</div>
+        <div class="resource-sub">Track BSR and price history for any Amazon product. Essential for verifying leads.</div>
+        <br><a href="https://keepa.com" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">keepa.com →</a>
+      </div>
+      <div class="resource-card">
+        <div class="resource-icon">🏭</div>
+        <div class="resource-title">Faire</div>
+        <div class="resource-sub">Leading wholesale marketplace. Thousands of brands offering net-60 terms.</div>
+        <br><a href="https://faire.com" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">faire.com →</a>
+      </div>
+      <div class="resource-card">
+        <div class="resource-icon">🔍</div>
+        <div class="resource-title">RangeMe</div>
+        <div class="resource-sub">Connect directly with brand wholesale programs and apply for accounts.</div>
+        <br><a href="https://rangeme.com" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">rangeme.com →</a>
+      </div>
+      <div class="resource-card">
+        <div class="resource-icon">💰</div>
+        <div class="resource-title">Rakuten</div>
+        <div class="resource-sub">Get cashback on OA purchases from Walgreens, Target, and hundreds of retailers.</div>
+        <br><a href="https://rakuten.com" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">rakuten.com →</a>
+      </div>
+      <div class="resource-card">
+        <div class="resource-icon">📦</div>
+        <div class="resource-title">Seller Central</div>
+        <div class="resource-sub">Your Amazon seller hub. Create shipments, monitor inventory, and manage listings.</div>
+        <br><a href="https://sellercentral.amazon.com" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">sellercentral.amazon.com →</a>
+      </div>
+      <div class="resource-card">
+        <div class="resource-icon">🧮</div>
+        <div class="resource-title">FBA Calculator</div>
+        <div class="resource-sub">Amazon's official tool to calculate exact FBA fees before ordering any product.</div>
+        <br><a href="https://sellercentral.amazon.com/hz/fba/profitabilitycalculator" target="_blank" style="font-size:11px;color:var(--gold);font-family:var(--mono);text-decoration:none">FBA Calculator →</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PO Modal -->
+<div class="modal-overlay" id="po-modal">
+  <div class="modal">
+    <div class="modal-title">Generate Purchase Order</div>
+    <div class="modal-sub">Fill in your details to generate a professional PO</div>
+    <input class="modal-input" id="po-business" placeholder="Your business name">
+    <input class="modal-input" id="po-product" placeholder="Product name">
+    <input class="modal-input" id="po-qty" placeholder="Quantity (units)">
+    <input class="modal-input" id="po-price" placeholder="Unit cost (e.g. $8.50)">
+    <input class="modal-input" id="po-supplier" placeholder="Supplier name">
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-gold" onclick="generatePO()" style="flex:1">Generate PO</button>
+      <button class="btn" onclick="closePOModal()">Cancel</button>
+    </div>
+    <div class="email-box show" id="po-output" style="display:none;margin-top:12px">
+      <div class="email-body" id="po-body"></div>
+      <button class="copy-btn" onclick="copyEmail('po-body')">Copy PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3PL Modal -->
+<div class="modal-overlay" id="tpl-modal">
+  <div class="modal">
+    <div class="modal-title">3PL Receiving Instructions</div>
+    <div class="modal-sub">Send this to your 3PL when your order ships</div>
+    <input class="modal-input" id="tpl-product" placeholder="Product name">
+    <input class="modal-input" id="tpl-asin" placeholder="ASIN (e.g. B00XXXXX)">
+    <input class="modal-input" id="tpl-qty" placeholder="Expected quantity">
+    <input class="modal-input" id="tpl-supplier" placeholder="Shipping from (supplier name)">
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-gold" onclick="generate3PL()" style="flex:1">Generate instructions</button>
+      <button class="btn" onclick="close3PLModal()">Cancel</button>
+    </div>
+    <div class="email-box show" id="tpl-output" style="display:none;margin-top:12px">
+      <div class="email-body" id="tpl-body"></div>
+      <button class="copy-btn" onclick="copyEmail('tpl-body')">Copy instructions</button>
+    </div>
+  </div>
+</div>
+
+<!-- Self-prep Modal -->
+<div class="modal-overlay" id="prep-modal">
+  <div class="modal">
+    <div class="modal-title">Self-Prep Checklist</div>
+    <div class="modal-sub">What you need to prep OA products at home</div>
+    <div style="font-size:13px;line-height:2;color:var(--muted);font-family:var(--mono)">
+      ☐ Print FNSKU labels from Seller Central<br>
+      ☐ Apply FNSKU label over existing barcode<br>
+      ☐ Poly bag items if required (check Amazon guidelines)<br>
+      ☐ Remove or cover any retail pricing stickers<br>
+      ☐ Check expiration dates — Amazon requires 90+ days<br>
+      ☐ Count and verify units match your shipment plan<br>
+      ☐ Box items with appropriate padding<br>
+      ☐ Apply Amazon shipment label to outside of box<br>
+      ☐ Drop off at UPS/FedEx store<br>
+    </div>
+    <button class="btn btn-gold" onclick="document.getElementById('prep-modal').classList.remove('show')" style="width:100%;margin-top:16px">Got it</button>
+  </div>
+</div>
+
+<script>
+var currentPath = '';
+var currentLead = '';
+var completedSteps = 0;
+
+function selectPath(path) {
+  currentPath = path;
+  document.getElementById('path-ws').classList.remove('active','oa-active');
+  document.getElementById('path-oa').classList.remove('active','oa-active');
+  document.getElementById('ws-steps').classList.remove('active');
+  document.getElementById('oa-steps').classList.remove('active');
+
+  if(path === 'ws') {
+    document.getElementById('path-ws').classList.add('active');
+    document.getElementById('ws-steps').classList.add('active');
+    generateWSEmail();
+  } else {
+    document.getElementById('path-oa').classList.add('oa-active');
+    document.getElementById('oa-steps').classList.add('active');
+  }
+
+  document.getElementById('ts-0').classList.add('done');
+  document.getElementById('ts-0').classList.remove('active');
+  document.getElementById('ts-1').classList.add('active');
+  updateProgress(1);
+
+  setTimeout(function() {
+    document.getElementById(path === 'ws' ? 'ws-steps' : 'oa-steps').scrollIntoView({behavior:'smooth'});
+  }, 100);
+}
+
+function markDone(stepId, stepNum) {
+  var card = document.getElementById(stepId);
+  card.classList.add('completed');
+  card.querySelector('.step-num').textContent = '✓';
+  completedSteps = Math.max(completedSteps, stepNum);
+  updateProgress(stepNum + 1);
+
+  var ts = document.getElementById('ts-' + (stepNum - 1));
+  if(ts) { ts.classList.add('done'); ts.classList.remove('active'); }
+  var tsNext = document.getElementById('ts-' + stepNum);
+  if(tsNext) tsNext.classList.add('active');
+}
+
+function updateProgress(step) {
+  var pct = Math.min((step / 6) * 100, 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = Math.min(step - 1, 6) + ' of 6 steps complete';
+}
+
+function toggleEmail(id) {
+  var box = document.getElementById(id);
+  box.classList.toggle('show');
+}
+
+function generateWSEmail() {
+  var email = 'Dear Wholesale Team,\n\nMy name is [Your Name] and I am the owner of [Business Name], an authorized Amazon FBA seller.\n\nI am writing to inquire about opening a wholesale account with your company. I am interested in carrying your products on Amazon and believe there is strong demand based on my market research.\n\nAbout my business:\n- Amazon Seller Central account in good standing\n- Focused on the Health & Household and Grocery categories\n- Experience managing FBA inventory and logistics\n- Looking to establish a long-term supplier relationship\n\nI would appreciate information on:\n- Minimum order quantities and pricing tiers\n- Available payment terms (Net 30 preferred)\n- Product catalog and current availability\n- Account application requirements\n\nI look forward to the opportunity to carry your products and build a mutually beneficial partnership.\n\nBest regards,\n[Your Name]\n[Business Name]\n[Email]\n[Phone]';
+  document.getElementById('ws-email-body').textContent = email;
+}
+
+function copyEmail(id) {
+  var text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    alert('Copied to clipboard!');
+  });
+}
+
+function showPOModal() {
+  document.getElementById('po-modal').classList.add('show');
+}
+
+function closePOModal() {
+  document.getElementById('po-modal').classList.remove('show');
+  document.getElementById('po-output').style.display = 'none';
+}
+
+function generatePO() {
+  var business = document.getElementById('po-business').value || '[Business Name]';
+  var product  = document.getElementById('po-product').value || '[Product Name]';
+  var qty      = document.getElementById('po-qty').value || '[Quantity]';
+  var price    = document.getElementById('po-price').value || '[Unit Price]';
+  var supplier = document.getElementById('po-supplier').value || '[Supplier Name]';
+  var today    = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  var poNum    = 'PO-' + Date.now().toString().slice(-6);
+
+  var total = '';
+  try {
+    var p = parseFloat(price.replace('$',''));
+    var q = parseInt(qty);
+    total = '$' + (p * q).toFixed(2);
+  } catch(e) { total = '[Total]'; }
+
+  var po = 'PURCHASE ORDER\n' +
+    '══════════════════════════════════\n' +
+    'PO Number: ' + poNum + '\n' +
+    'Date: ' + today + '\n\n' +
+    'FROM:\n' + business + '\n\n' +
+    'TO:\n' + supplier + '\n\n' +
+    'SHIP TO:\n[Your 3PL Name]\n[3PL Address]\n[City, State, ZIP]\n\n' +
+    '══════════════════════════════════\n' +
+    'ITEM DETAILS\n' +
+    '══════════════════════════════════\n' +
+    'Product: ' + product + '\n' +
+    'Quantity: ' + qty + ' units\n' +
+    'Unit Cost: ' + price + '\n' +
+    'Total: ' + total + '\n\n' +
+    '══════════════════════════════════\n' +
+    'SPECIAL INSTRUCTIONS\n' +
+    '══════════════════════════════════\n' +
+    '- Please include packing slip with order\n' +
+    '- Do NOT include retail pricing on boxes\n' +
+    '- Ship to 3PL address above (not Amazon directly)\n' +
+    '- Expected ship date: [Date]\n\n' +
+    'Payment terms: Net 30\n' +
+    'Please confirm receipt of this PO.\n\n' +
+    'Thank you,\n' + business;
+
+  document.getElementById('po-body').textContent = po;
+  document.getElementById('po-output').style.display = 'block';
+}
+
+function show3PLModal() {
+  document.getElementById('tpl-modal').classList.add('show');
+}
+
+function close3PLModal() {
+  document.getElementById('tpl-modal').classList.remove('show');
+  document.getElementById('tpl-output').style.display = 'none';
+}
+
+function generate3PL() {
+  var product  = document.getElementById('tpl-product').value || '[Product Name]';
+  var asin     = document.getElementById('tpl-asin').value || '[ASIN]';
+  var qty      = document.getElementById('tpl-qty').value || '[Quantity]';
+  var supplier = document.getElementById('tpl-supplier').value || '[Supplier]';
+  var today    = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  var instructions = 'RECEIVING & PREP INSTRUCTIONS\n' +
+    '══════════════════════════════════\n' +
+    'Date: ' + today + '\n' +
+    'Seller: [Your Name / Business]\n\n' +
+    'INCOMING SHIPMENT:\n' +
+    'Product: ' + product + '\n' +
+    'ASIN: ' + asin + '\n' +
+    'Expected quantity: ' + qty + ' units\n' +
+    'Shipping from: ' + supplier + '\n\n' +
+    'PREP REQUIREMENTS:\n' +
+    '1. Receive and count all units\n' +
+    '2. Inspect for damage — photograph any issues\n' +
+    '3. Apply FNSKU labels (will send label file separately)\n' +
+    '4. Poly bag each unit if required\n' +
+    '5. Remove or cover any retail price stickers\n' +
+    '6. Check expiration dates — must be 90+ days out\n\n' +
+    'FBA SHIPMENT:\n' +
+    '- Create FBA inbound shipment in Seller Central\n' +
+    '- Will send shipment ID and box labels once created\n' +
+    '- Please ship within 2-3 business days of receipt\n\n' +
+    'Questions? Reply to this email.\n' +
+    'Thank you!';
+
+  document.getElementById('tpl-body').textContent = instructions;
+  document.getElementById('tpl-output').style.display = 'block';
+}
+
+function showSelfPrepGuide() {
+  document.getElementById('prep-modal').classList.add('show');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) {
+    if(e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+// Load lead from URL params if passed from dashboard
+var params = new URLSearchParams(window.location.search);
+if(params.get('lead')) {
+  currentLead = params.get('lead');
+}
+if(params.get('path')) {
+  selectPath(params.get('path'));
+}
+</script>
+</body>
+</html>
