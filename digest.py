@@ -83,7 +83,8 @@ def build_lead_card(lead, index):
             <a href="{skip_url}"
                style="background:rgba(255,255,255,0.06);color:#888884;font-size:12px;
                       padding:8px 20px;border-radius:6px;text-decoration:none;
-                      font-family:sans-serif;border:1px solid rgba(255,255,255,0.1)">
+                      font-family:sans-serif;border:1px solid rgba(255,255,255,0.1);
+                      white-space:nowrap;display:inline-block;min-width:60px;text-align:center">
               Skip
             </a>
           </div>
@@ -128,8 +129,23 @@ def build_email_html(user_email, leads, tier):
     return f"""
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0a0a08;font-family:'Helvetica Neue',Arial,sans-serif">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
+    <style>
+      @media only screen and (max-width:600px) {
+        .email-container { width:100% !important; }
+        .stat-block { display:inline-block !important; }
+        .lead-card { padding:14px 16px !important; }
+        .lead-actions { flex-wrap:nowrap !important; }
+        .skip-btn { white-space:nowrap !important; }
+      }
+      :root { color-scheme: dark; }
+    </style>
+  </head>
+<body bgcolor="#0a0a08" style="margin:0;padding:0;background:#0a0a08;font-family:'Helvetica Neue',Arial,sans-serif">
 
   <!-- Header -->
   <div style="background:#0a0a08;padding:32px 40px 0">
