@@ -495,9 +495,18 @@ if __name__ == "__main__":
 from digest import send_digest, send_all_digests
 
 @app.get("/leads/approve")
-async def approve_lead(index: int, name: str, request: Request):
-    """One-click approve from email — generates PO and confirms."""
-    return HTMLResponse(content=f"""
+async def approve_lead(index: int, name: str, user_id: str = "", request: Request = None):
+    """One-click approve from email — records approval."""
+    # Log the approval
+    if user_id:
+        try:
+            supabase_admin.table("leads").update({
+                "approved": True,
+                "approved_at": datetime.now().isoformat()
+            }).eq("user_id", user_id).ilike("name", "%" + name[:20] + "%").execute()
+        except:
+            pass
+    return HTMLResponse(content="""
     <!DOCTYPE html><html>
     <head><meta charset="UTF-8">
     <style>
@@ -754,5 +763,122 @@ async def generate_outreach_email(supplier_id: str, user=Depends(get_current_use
             "body": email_body,
             "supplier": supplier.get("name","")
         }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ── Purchase Order Generation ─────────────────────────────────────────────────
+
+class PORequest(BaseModel):
+    lead_name: str
+    asin: str = ""
+    supplier_name: str = ""
+    quantity: int = 0
+    unit_cost: str = ""
+    notes: str = ""
+
+@app.post("/orders/generate")
+async def generate_po(req: PORequest, user=Depends(get_current_user)):
+    """Generate a purchase order for an approved lead."""
+    try:
+        profile = await get_user_profile(user.id)
+        today   = datetime.now().strftime("%B %d, %Y")
+        po_num  = "PO-" + datetime.now().strftime("%Y%m%d") + "-" + str(int(datetime.now().timestamp()))[-4:]
+
+        # Calculate total
+        total = ""
+        try:
+            price = float(str(req.unit_cost).replace("$","").strip())
+            total = "$" + str(round(price * req.quantity, 2))
+        except:
+            total = "—"
+
+        po_text = (
+            "PURCHASE ORDER\n"
+            "══════════════════════════════════\n"
+            "PO Number: " + po_num + "\n"
+            "Date: " + today + "\n\n"
+            "FROM:\n"
+            "[Your Business Name]\n"
+            "[Your Address]\n"
+            "[City, State, ZIP]\n\n"
+            "TO:\n"
+            + (req.supplier_name or "[Supplier Name]") + "\n\n"
+            "SHIP TO:\n"
+            "[Your 3PL Name]\n"
+            "[3PL Address]\n"
+            "[City, State, ZIP]\n\n"
+            "══════════════════════════════════\n"
+            "ITEM DETAILS\n"
+            "══════════════════════════════════\n"
+            "Product: " + req.lead_name + "\n"
+            "ASIN: " + (req.asin or "—") + "\n"
+            "Quantity: " + str(req.quantity) + " units\n"
+            "Unit Cost: " + (req.unit_cost or "—") + "\n"
+            "Total: " + total + "\n\n"
+            "══════════════════════════════════\n"
+            "SPECIAL INSTRUCTIONS\n"
+            "══════════════════════════════════\n"
+            "- Please include packing slip with order\n"
+            "- Do NOT include retail pricing on boxes\n"
+            "- Ship to 3PL address above (not Amazon directly)\n"
+            + (("- Notes: " + req.notes + "\n") if req.notes else "") +
+            "\nPayment terms: Net 30\n"
+            "Please confirm receipt of this PO.\n\n"
+            "Thank you,\n"
+            "[Your Name]\n"
+            "[Your Business Name]"
+        )
+
+        # Save order to database
+        order_data = {
+            "user_id":      user.id,
+            "po_number":    po_num,
+            "product_name": req.lead_name,
+            "asin":         req.asin,
+            "quantity":     req.quantity,
+            "unit_cost":    req.unit_cost,
+            "total_cost":   total,
+            "status":       "draft",
+            "notes":        req.notes,
+            "created_at":   datetime.now().isoformat(),
+            "updated_at":   datetime.now().isoformat(),
+        }
+
+        # Try to match supplier
+        if req.supplier_name:
+            supplier_result = supabase_admin.table("suppliers").select("id").eq("user_id", user.id).ilike("name", "%" + req.supplier_name + "%").limit(1).execute()
+            if supplier_result.data:
+                order_data["supplier_id"] = supplier_result.data[0]["id"]
+
+        supabase_admin.table("orders").insert(order_data).execute()
+
+        return {
+            "po_number":  po_num,
+            "po_text":    po_text,
+            "total":      total,
+            "message":    "Purchase order generated successfully"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/orders")
+async def get_orders(user=Depends(get_current_user)):
+    """Get all orders for the current user."""
+    try:
+        result = supabase_admin.table("orders").select("*").eq("user_id", user.id).order("created_at", desc=True).execute()
+        return {"orders": result.data or []}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/orders/{order_id}/status")
+async def update_order_status(order_id: str, status: str, user=Depends(get_current_user)):
+    """Update order status: draft, sent, confirmed, shipped, received."""
+    try:
+        supabase_admin.table("orders").update({
+            "status":     status,
+            "updated_at": datetime.now().isoformat()
+        }).eq("id", order_id).eq("user_id", user.id).execute()
+        return {"message": "Order status updated to " + status}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
