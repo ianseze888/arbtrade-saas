@@ -11,15 +11,14 @@
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
   --text:#f2efe8;--muted:#888884;--dim:#555552;
   --gold:#c8a96e;--gold2:#e8c98a;
-  --ws:#4A9EFF;--oa:#3ECFA0;
-  --red:#FF5C5C;--green:#3ECFA0;
+  --ws:#4A9EFF;--oa:#3ECFA0;--red:#FF5C5C;--green:#3ECFA0;
   --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,169,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(200,169,110,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
 .logo{font-size:13px;font-family:var(--mono);color:var(--gold);letter-spacing:.15em;margin-bottom:40px;text-align:center}
-.card{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:36px 40px;position:relative}
+.card{width:100%;max-width:440px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:36px 40px;position:relative}
 .card::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
 .card-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
 .card-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:28px}
@@ -35,7 +34,7 @@ input:focus{border-color:var(--gold)}
 .btn-submit:disabled{opacity:.5;cursor:not-allowed}
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0;font-size:11px;color:var(--dim);font-family:var(--mono)}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .plan{border:1px solid var(--border);border-radius:8px;padding:12px 10px;cursor:pointer;transition:all .15s;text-align:center}
 .plan:hover{border-color:var(--gold);background:rgba(200,169,110,.04)}
 .plan.selected{border-color:var(--gold);background:rgba(200,169,110,.08)}
@@ -49,6 +48,21 @@ input:focus{border-color:var(--gold)}
 .footer-link{text-align:center;margin-top:20px;font-size:12px;color:var(--muted);font-family:var(--mono)}
 .footer-link a{color:var(--gold);text-decoration:none}
 .trial-badge{display:inline-block;background:rgba(62,207,160,.1);border:1px solid rgba(62,207,160,.2);color:var(--green);font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:20px;margin-left:8px}
+
+/* Experience selector */
+.exp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.exp-card{border:1px solid var(--border);border-radius:8px;padding:14px 10px;cursor:pointer;transition:all .15s;text-align:center}
+.exp-card:hover{border-color:var(--gold);background:rgba(200,169,110,.04)}
+.exp-card.selected{border-color:var(--gold);background:rgba(200,169,110,.08)}
+.exp-icon{font-size:22px;margin-bottom:6px}
+.exp-title{font-size:12px;font-weight:600;margin-bottom:3px}
+.exp-sub{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* Step indicator */
+.steps-indicator{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .2s}
+.step-dot.active{background:var(--gold);width:20px;border-radius:4px}
+.step-dot.done{background:var(--green)}
 </style>
 </head>
 <body>
@@ -57,14 +71,14 @@ input:focus{border-color:var(--gold)}
 
 <div class="card">
   <div class="card-title" id="card-title">Welcome back</div>
-  <div class="card-sub" id="card-sub">Sign in to your account to access your leads</div>
+  <div class="card-sub" id="card-sub">Sign in to access your leads</div>
 
   <div class="tabs">
     <button class="tab active" onclick="setMode('login')">Sign in</button>
     <button class="tab" onclick="setMode('signup')">Create account</button>
   </div>
 
-  <!-- Login form -->
+  <!-- LOGIN FORM -->
   <div id="login-form">
     <div class="field">
       <label>Email</label>
@@ -78,43 +92,90 @@ input:focus{border-color:var(--gold)}
     <div class="msg" id="login-msg"></div>
   </div>
 
-  <!-- Signup form -->
+  <!-- SIGNUP FORM — 3 steps -->
   <div id="signup-form" style="display:none">
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password">
+
+    <!-- Step dots -->
+    <div class="steps-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
     </div>
 
-    <div class="divider">Choose your plan</div>
-
-    <div class="plans" id="plan-selector">
-      <div class="plan selected" onclick="selectPlan('starter',this)">
-        <div class="plan-name">Starter</div>
-        <div class="plan-price">$47/mo</div>
-        <div class="plan-desc">4hr scans</div>
+    <!-- Step 1: Account details -->
+    <div id="signup-step-1">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="you@email.com" autocomplete="email">
       </div>
-      <div class="plan" onclick="selectPlan('pro',this)">
-        <div class="plan-name" style="color:var(--oa)">Pro</div>
-        <div class="plan-price" style="color:var(--oa)">$97/mo</div>
-        <div class="plan-desc">2hr scans</div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="signup-password" placeholder="Min 8 characters" autocomplete="new-password">
       </div>
-      <div class="plan" onclick="selectPlan('agency',this)">
-        <div class="plan-name" style="color:var(--ws)">Agency</div>
-        <div class="plan-price" style="color:var(--ws)">$197/mo</div>
-        <div class="plan-desc">Hourly scans</div>
-      </div>
+      <button class="btn-submit" onclick="goToStep2()">Continue →</button>
+      <div class="msg" id="signup-msg-1"></div>
     </div>
 
-    <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);font-family:var(--mono)">
-      7-day trial <span class="trial-badge">Card required · Charges day 8</span>
+    <!-- Step 2: Experience level -->
+    <div id="signup-step-2" style="display:none">
+      <div style="font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;line-height:1.6">
+        How long have you been selling on Amazon?<br>
+        <span style="font-size:11px;color:var(--dim)">We tailor your experience based on your level</span>
+      </div>
+      <div class="exp-grid">
+        <div class="exp-card" id="exp-new" onclick="selectExp('new',this)">
+          <div class="exp-icon">🌱</div>
+          <div class="exp-title">Just starting</div>
+          <div class="exp-sub">Under 1 year</div>
+        </div>
+        <div class="exp-card" id="exp-mid" onclick="selectExp('mid',this)">
+          <div class="exp-icon">📈</div>
+          <div class="exp-title">Experienced</div>
+          <div class="exp-sub">1–3 years</div>
+        </div>
+        <div class="exp-card" id="exp-pro" onclick="selectExp('pro',this)">
+          <div class="exp-icon">🏆</div>
+          <div class="exp-title">Seasoned pro</div>
+          <div class="exp-sub">3+ years</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-submit" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border2);flex:0 0 auto;width:44px;font-size:18px" onclick="goToStep1()">←</button>
+        <button class="btn-submit" onclick="goToStep3()" id="step2-btn" style="flex:1">Continue →</button>
+      </div>
+      <div class="msg" id="signup-msg-2"></div>
     </div>
 
-    <button class="btn-submit" onclick="handleSignup()" id="signup-btn" style="margin-top:16px">Start 7-day trial →</button>
-    <div class="msg" id="signup-msg"></div>
+    <!-- Step 3: Plan selection -->
+    <div id="signup-step-3" style="display:none">
+      <div style="font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;line-height:1.6">
+        Choose your plan
+        <span class="trial-badge">7-day trial · Card required · Charges day 8</span>
+      </div>
+      <div class="plans">
+        <div class="plan selected" onclick="selectPlan('starter',this)">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">$47/mo</div>
+          <div class="plan-desc">4hr scans</div>
+        </div>
+        <div class="plan" onclick="selectPlan('pro',this)">
+          <div class="plan-name" style="color:var(--oa)">Pro</div>
+          <div class="plan-price" style="color:var(--oa)">$97/mo</div>
+          <div class="plan-desc">2hr scans</div>
+        </div>
+        <div class="plan" onclick="selectPlan('agency',this)">
+          <div class="plan-name" style="color:var(--ws)">Agency</div>
+          <div class="plan-price" style="color:var(--ws)">$197/mo</div>
+          <div class="plan-desc">Hourly scans</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-submit" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border2);flex:0 0 auto;width:44px;font-size:18px" onclick="goToStep2()">←</button>
+        <button class="btn-submit" onclick="handleSignup()" id="signup-btn" style="flex:1">Start 7-day trial →</button>
+      </div>
+      <div class="msg" id="signup-msg-3"></div>
+    </div>
+
   </div>
 </div>
 
@@ -127,13 +188,15 @@ input:focus{border-color:var(--gold)}
 <script>
 var API = 'https://arbtrade-saas-production.up.railway.app';
 var selectedPlan = 'starter';
+var selectedExp = '';
 var mode = 'login';
+
+// Redirect if already logged in
+if(localStorage.getItem('arbtrade_token')) window.location.href = 'dashboard.html';
 
 function setMode(m) {
   mode = m;
-  document.querySelectorAll('.tab').forEach(function(t,i) {
-    t.classList.toggle('active', (i===0&&m==='login')||(i===1&&m==='signup'));
-  });
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',(i===0&&m==='login')||(i===1&&m==='signup'))});
   document.getElementById('login-form').style.display = m==='login'?'block':'none';
   document.getElementById('signup-form').style.display = m==='signup'?'block':'none';
   document.getElementById('card-title').textContent = m==='login'?'Welcome back':'Create your account';
@@ -142,7 +205,13 @@ function setMode(m) {
 
 function selectPlan(plan, el) {
   selectedPlan = plan;
-  document.querySelectorAll('.plan').forEach(function(p) { p.classList.remove('selected'); });
+  document.querySelectorAll('.plan').forEach(function(p){p.classList.remove('selected')});
+  el.classList.add('selected');
+}
+
+function selectExp(exp, el) {
+  selectedExp = exp;
+  document.querySelectorAll('.exp-card').forEach(function(e){e.classList.remove('selected')});
   el.classList.add('selected');
 }
 
@@ -152,98 +221,117 @@ function showMsg(id, text, type) {
   el.className = 'msg ' + type + ' show';
 }
 
+function setDots(step) {
+  for(var i=1;i<=3;i++) {
+    var dot = document.getElementById('dot-'+i);
+    dot.className = 'step-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  }
+}
+
+function goToStep1() {
+  document.getElementById('signup-step-1').style.display = 'block';
+  document.getElementById('signup-step-2').style.display = 'none';
+  setDots(1);
+}
+
+function goToStep2() {
+  var email = document.getElementById('signup-email').value.trim();
+  var password = document.getElementById('signup-password').value;
+  if(!email || !password) { showMsg('signup-msg-1','Please fill in all fields','error'); return; }
+  if(password.length < 8) { showMsg('signup-msg-1','Password must be at least 8 characters','error'); return; }
+  document.getElementById('signup-step-1').style.display = 'none';
+  document.getElementById('signup-step-2').style.display = 'block';
+  document.getElementById('signup-step-3').style.display = 'none';
+  setDots(2);
+}
+
+function goToStep3() {
+  if(!selectedExp) { showMsg('signup-msg-2','Please select your experience level','error'); return; }
+  document.getElementById('signup-step-2').style.display = 'none';
+  document.getElementById('signup-step-3').style.display = 'block';
+  setDots(3);
+}
+
 async function handleLogin() {
   var email = document.getElementById('login-email').value.trim();
   var password = document.getElementById('login-password').value;
-  if (!email || !password) { showMsg('login-msg','Please fill in all fields','error'); return; }
+  if(!email||!password){showMsg('login-msg','Please fill in all fields','error');return}
   var btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = 'Signing in...';
+  btn.disabled=true; btn.textContent='Signing in...';
   try {
-    var resp = await fetch(API + '/auth/login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email, password})
-    });
+    var resp = await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
     var data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || 'Login failed');
+    if(!resp.ok) throw new Error(data.detail||'Login failed');
     localStorage.setItem('arbtrade_token', data.access_token);
     localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
-    showMsg('login-msg', 'Success! Redirecting...', 'success');
-    setTimeout(function() { window.location.href = 'dashboard.html'; }, 800);
+    showMsg('login-msg','Success! Redirecting...','success');
+    setTimeout(function(){window.location.href='dashboard.html'},800);
   } catch(e) {
-    showMsg('login-msg', e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Sign in →';
+    showMsg('login-msg',e.message,'error');
+    btn.disabled=false; btn.textContent='Sign in →';
   }
 }
 
 async function handleSignup() {
   var email = document.getElementById('signup-email').value.trim();
   var password = document.getElementById('signup-password').value;
-  if (!email || !password) { showMsg('signup-msg','Please fill in all fields','error'); return; }
-  if (password.length < 8) { showMsg('signup-msg','Password must be at least 8 characters','error'); return; }
   var btn = document.getElementById('signup-btn');
-  btn.disabled = true; btn.textContent = 'Creating account...';
+  btn.disabled=true; btn.textContent='Creating account...';
   try {
-    // Create account
-    var resp = await fetch(API + '/auth/signup', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email, password})
-    });
+    var resp = await fetch(API+'/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
     var data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || 'Signup failed');
+    if(!resp.ok) throw new Error(data.detail||'Signup failed');
 
-    // Store token safely
-    var accessToken = (data.session && data.session.access_token) ? data.session.access_token : (data.access_token || '');
-    if (accessToken) {
+    var accessToken = (data.session&&data.session.access_token)?data.session.access_token:(data.access_token||'');
+    if(accessToken) {
       localStorage.setItem('arbtrade_token', accessToken);
       localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
+      localStorage.setItem('arbtrade_exp', selectedExp);
     }
 
-    if (!accessToken) {
-      showMsg('signup-msg', 'Account created! Please sign in to continue.', 'success');
-      btn.disabled = false; btn.textContent = 'Start 7-day trial →';
+    if(!accessToken) {
+      showMsg('signup-msg-3','Account created! Please sign in to continue.','success');
+      btn.disabled=false; btn.textContent='Start 7-day trial →';
       return;
     }
 
+    // Save experience level to profile
+    if(selectedExp) {
+      await fetch(API+'/profile/experience',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},
+        body:JSON.stringify({experience_level:selectedExp})
+      }).catch(function(){});
+    }
+
     // Redirect to Stripe checkout
-    btn.textContent = 'Redirecting to checkout...';
-    var checkoutResp = await fetch(API + '/billing/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + accessToken
-      },
-      body: JSON.stringify({
-        tier: selectedPlan,
-        success_url: window.location.origin + '/dashboard.html',
-        cancel_url: window.location.origin + '/login.html'
+    btn.textContent='Redirecting to checkout...';
+    var checkoutResp = await fetch(API+'/billing/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken},
+      body:JSON.stringify({
+        tier:selectedPlan,
+        success_url:window.location.origin+'/dashboard.html',
+        cancel_url:window.location.origin+'/login.html'
       })
     });
     var checkoutData = await checkoutResp.json();
-    if (checkoutData.checkout_url) {
+    if(checkoutData.checkout_url) {
       window.location.href = checkoutData.checkout_url;
     } else {
-      // If checkout fails just go to dashboard (trial)
       window.location.href = 'dashboard.html';
     }
   } catch(e) {
-    showMsg('signup-msg', e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Start 7-day trial →';
+    showMsg('signup-msg-3',e.message,'error');
+    btn.disabled=false; btn.textContent='Start 7-day trial →';
   }
 }
 
-// Allow Enter key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    if (mode === 'login') handleLogin();
-    else handleSignup();
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    if(mode==='login') handleLogin();
   }
 });
-
-// Check if already logged in
-var token = localStorage.getItem('arbtrade_token');
-if (token) window.location.href = 'dashboard.html';
 </script>
 </body>
 </html>

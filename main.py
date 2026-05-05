@@ -566,3 +566,23 @@ def send_daily_digests_job():
 
 # Schedule daily digest at 8 AM
 schedule.every().day.at("08:00").do(send_daily_digests_job)
+
+# ── Experience Level ─────────────────────────────────────────────────────────
+
+class ExperienceUpdate(BaseModel):
+    experience_level: str  # "new", "mid", "pro"
+
+@app.post("/profile/experience")
+async def update_experience(req: ExperienceUpdate, user=Depends(get_current_user)):
+    try:
+        supabase_admin.table("profiles").update({
+            "experience_level": req.experience_level
+        }).eq("id", user.id).execute()
+        return {"message": "Experience level saved"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/profile/experience")
+async def get_experience(user=Depends(get_current_user)):
+    profile = await get_user_profile(user.id)
+    return {"experience_level": profile.get("experience_level","new") if profile else "new"}

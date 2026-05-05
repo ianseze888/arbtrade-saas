@@ -511,6 +511,11 @@ async function openBillingPortal() {
 }
 
 // Init
+// Apply experience UI immediately from localStorage
+var _exp = localStorage.getItem('arbtrade_exp') || 'new';
+var _guideLink = document.getElementById('guide-link');
+if(_guideLink) _guideLink.style.display = _exp === 'new' ? 'flex' : 'none';
+
 loadProfile();
 loadLeads();
 setInterval(loadLeads, 300000);
