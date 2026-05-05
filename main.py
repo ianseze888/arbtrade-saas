@@ -195,6 +195,7 @@ def normalize_lead(lead):
 
 # Agent logic moved to agent_saas.py
 from agent_saas import run_agent_for_user, get_lead_history_days, deduplicate_leads
+from verify_agent import verify_leads_batch, get_verification_badge
 
 def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
     ws = criteria.get("wholesale", {})
@@ -245,6 +246,9 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
                 "name":           lead.get("name",""),
                 "asin":           lead.get("asin",""),
                 "data":           json.dumps(lead),
+                "verification_status": lead.get("verification_status","unverified"),
+                "verified": lead.get("verified", False),
+                "confidence": lead.get("confidence","—"),
                 "recommendation": lead.get("recommendation",""),
                 "roi":            safe_roi(lead.get("roi",0)),
                 "type":           lead.get("type","wholesale"),
