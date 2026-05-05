@@ -64,6 +64,25 @@ input:focus{border-color:var(--gold)}
 .step-dot.active{background:var(--gold);width:20px;border-radius:4px}
 .step-dot.done{background:var(--green)}
 </style>
+
+<style>
+@media only screen and (max-width: 480px) {
+  body { padding: 16px; justify-content: flex-start; padding-top: 40px; }
+  .logo { margin-bottom: 24px; }
+  .card { padding: 24px 20px; border-radius: 10px; }
+  .card-title { font-size: 19px; }
+  .plans { grid-template-columns: 1fr; gap: 6px; }
+  .plan { padding: 10px; display: flex; align-items: center; gap: 12px; text-align: left; }
+  .plan-name { margin-bottom: 0; }
+  .exp-grid { grid-template-columns: 1fr; gap: 6px; }
+  .exp-card { display: flex; align-items: center; gap: 12px; padding: 12px; text-align: left; }
+  .exp-icon { font-size: 18px; margin-bottom: 0; }
+  .btn-submit { padding: 13px; font-size: 13px; }
+  input { font-size: 16px; } /* Prevents zoom on iOS */
+  .footer-link { margin-top: 16px; font-size: 11px; }
+  .steps-indicator { margin-bottom: 16px; }
+}
+</style>
 </head>
 <body>
 

@@ -53,7 +53,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .fstatus{font-size:11px;color:var(--dim);font-family:var(--mono);margin-left:auto}
 .refresh-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--muted);padding:5px 14px;border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--sans);transition:all .15s}
 .refresh-btn:hover{color:var(--text);border-color:var(--gold)}
-.leads-grid{display:flex;flex-direction:column;gap:8px}
+.leads-grid{display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:none}
 .lead-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;transition:border-color .15s}
 .lead-card:hover{border-color:var(--border2)}
 .lead-card.ws-card{border-left:3px solid var(--ws)}
@@ -103,6 +103,64 @@ button.btn-gold:hover{background:var(--gold2)}
 .loading{text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+</style>
+
+<style>
+@media only screen and (max-width: 768px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+    height: auto; flex-direction: row; padding: 0;
+    border-right: none; border-top: 1px solid var(--border);
+    z-index: 100; overflow-x: auto; overflow-y: hidden;
+  }
+  .logo { display: none; }
+  .sidebar-footer { display: none; }
+  .nav-item {
+    flex-direction: column; gap: 3px; padding: 8px 12px;
+    border-left: none; border-top: 2px solid transparent;
+    font-size: 10px; min-width: 56px; text-align: center;
+    white-space: nowrap;
+  }
+  .nav-item.active {
+    border-left: none; border-top-color: var(--gold);
+    background: rgba(200,169,110,.05);
+  }
+  .nav-icon { font-size: 18px; width: auto; }
+  .main { padding: 16px 16px 80px; }
+  .metrics { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .met { padding: 12px 14px; border-radius: 8px; }
+  .met-val { font-size: 20px; }
+  .met-label { font-size: 9px; }
+  .page-title { font-size: 17px; }
+  .page-sub { font-size: 11px; margin-bottom: 16px; }
+  .lead-card { grid-template-columns: 1fr; gap: 8px; padding: 12px 14px; }
+  .lead-right { flex-direction: row; align-items: center; gap: 12px; text-align: left; }
+  .lead-roi { font-size: 22px; }
+  .filters { gap: 4px; }
+  .fbtn { padding: 4px 10px; font-size: 10px; }
+  .g2 { grid-template-columns: 1fr; }
+  .card { padding: 14px 16px; }
+  .card-title { font-size: 12px; }
+  input[type=text], input[type=number], select { font-size: 16px; }
+  .upgrade-card { padding: 14px 16px; }
+  .plans-mobile { grid-template-columns: 1fr !important; }
+  /* Fix lead cards on mobile */
+  .leads-grid { gap: 6px; }
+  .lead-name { font-size: 13px; }
+  .lead-source { font-size: 10px; }
+  .lead-meta { gap: 8px; font-size: 10px; }
+  .lead-reason { font-size: 10px; }
+  .tags { gap: 4px; }
+  .tag { font-size: 9px; }
+  /* Scroll fix */
+  .page { overflow-y: auto; }
+  #page-results .leads-grid { max-height: none; overflow: visible; }
+}
+@media only screen and (max-width: 380px) {
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .nav-item { padding: 8px 8px; min-width: 48px; font-size: 9px; }
+}
 </style>
 </head>
 <body>

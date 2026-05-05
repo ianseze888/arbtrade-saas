@@ -106,7 +106,26 @@ button.btn-green:hover{background:rgba(62,207,160,.2)}
 textarea.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px;font-size:12px;font-family:var(--mono);color:var(--text);resize:vertical;height:200px;line-height:1.7}
 input.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--sans);color:var(--text);margin-bottom:10px}
 </style>
-</head>
+<style>
+@media only screen and (max-width: 768px) {
+  .main { padding: 24px 20px; }
+  .hero-title { font-size: 26px; }
+  .paths { grid-template-columns: 1fr; }
+  .resources { grid-template-columns: 1fr 1fr; }
+  .tracker-label { font-size: 9px; }
+  .modal { padding: 24px 20px; width: 95%; }
+  input.modal-input { font-size: 16px; }
+  nav { padding: 12px 20px; }
+}
+@media only screen and (max-width: 480px) {
+  .resources { grid-template-columns: 1fr; }
+  .step-card { grid-template-columns: auto 1fr; gap: 12px; padding: 14px 16px; }
+  .step-title { font-size: 14px; }
+  .step-body { font-size: 12px; }
+  .tracker-steps { gap: 0; }
+  .tracker-dot { width: 22px; height: 22px; font-size: 10px; }
+}
+</style></head>
 <body>
 
 <nav>
