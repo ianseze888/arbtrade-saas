@@ -231,10 +231,10 @@ def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
 
     return leads
 
-async def save_leads_for_user(user_id: str, leads: list):
-    """Save leads to Supabase, keeping 48h window."""
+async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
+    """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
-        cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+    cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     try:
         # Delete old leads
         supabase_admin.table("leads").delete().eq("user_id", user_id).lt("found_at", cutoff).execute()
