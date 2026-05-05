@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — Supplier CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f2efe8;--muted:#888884;--dim:#555552;
+  --gold:#c8a96e;--gold2:#e8c98a;
+  --ws:#4A9EFF;--oa:#3ECFA0;--red:#FF5C5C;--green:#3ECFA0;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+.shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .15s;border-left:2px solid transparent;text-decoration:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--text);border-left-color:var(--gold);background:rgba(200,169,110,.05)}
+.nav-icon{font-size:14px;width:16px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:12px 16px 0;border-top:1px solid var(--border)}
+.main{padding:28px 32px;overflow-y:auto}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:24px}
+
+/* Status badges */
+.status-badge{font-size:10px;font-family:var(--mono);padding:3px 9px;border-radius:20px;display:inline-block}
+.status-prospect{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border2)}
+.status-applied{background:rgba(200,169,110,.1);color:var(--gold);border:1px solid rgba(200,169,110,.25)}
+.status-approved{background:rgba(74,158,255,.1);color:var(--ws);border:1px solid rgba(74,158,255,.25)}
+.status-active{background:rgba(62,207,160,.1);color:var(--green);border:1px solid rgba(62,207,160,.25)}
+.status-paused{background:rgba(255,92,92,.08);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+
+/* Supplier cards */
+.supplier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin-bottom:24px}
+.supplier-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:border-color .15s;cursor:pointer}
+.supplier-card:hover{border-color:var(--border2)}
+.supplier-name{font-size:15px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.supplier-meta{font-size:11px;font-family:var(--mono);color:var(--muted);line-height:1.8}
+.supplier-meta span{color:var(--text)}
+.supplier-actions{display:flex;gap:6px;margin-top:14px}
+
+/* Buttons */
+button.btn{font-family:var(--sans);cursor:pointer;font-size:12px;font-weight:500;border-radius:8px;border:1px solid var(--border2);padding:7px 14px;background:var(--bg3);color:var(--text);transition:all .15s}
+button.btn:hover{background:rgba(255,255,255,.07)}
+button.btn-gold{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+button.btn-gold:hover{background:var(--gold2)}
+button.btn-sm{padding:5px 10px;font-size:11px}
+button.btn-red{background:rgba(255,92,92,.08);border-color:rgba(255,92,92,.2);color:var(--red)}
+button.btn-red:hover{background:rgba(255,92,92,.15)}
+
+/* Stats bar */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.stat-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+.stat-val{font-size:20px;font-weight:700}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px 32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:20px}
+.field{margin-bottom:14px}
+label{display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+input,select,textarea{width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+select option{background:var(--bg3)}
+textarea{height:80px;resize:vertical;font-size:12px;font-family:var(--mono)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+
+/* Email box */
+.email-preview{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-top:12px;display:none}
+.email-preview.show{display:block}
+.email-subject{font-size:11px;font-family:var(--mono);color:var(--gold);margin-bottom:8px}
+.email-body{font-size:12px;font-family:var(--mono);color:var(--muted);line-height:1.8;white-space:pre-wrap}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.3}
+
+/* Mobile */
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;padding:0;border-right:none;border-top:1px solid var(--border);z-index:100;overflow-x:auto}
+  .logo{display:none}.sidebar-footer{display:none}
+  .nav-item{flex-direction:column;gap:3px;padding:8px 12px;border-left:none;border-top:2px solid transparent;font-size:10px;min-width:56px;text-align:center}
+  .nav-item.active{border-left:none;border-top-color:var(--gold)}
+  .nav-icon{font-size:18px;width:auto}
+  .main{padding:16px 16px 80px}
+  .stats-bar{grid-template-columns:repeat(3,1fr)}
+  .supplier-grid{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+  input,select{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">ARBTRADE</div>
+    <div class="logo-name">Research Hub</div>
+  </div>
+  <a class="nav-item" href="dashboard.html"><span class="nav-icon">◈</span> Dashboard</a>
+  <a class="nav-item" href="dashboard.html#results"><span class="nav-icon">≡</span> Results</a>
+  <a class="nav-item active" href="suppliers.html"><span class="nav-icon">🏭</span> Suppliers</a>
+  <a class="nav-item" href="dashboard.html#scan"><span class="nav-icon">⊙</span> Run Scan</a>
+  <a class="nav-item" href="dashboard.html#criteria"><span class="nav-icon">⚙</span> Criteria</a>
+  <a class="nav-item" href="dashboard.html#billing"><span class="nav-icon">💳</span> Billing</a>
+  <a class="nav-item" href="index.html"><span class="nav-icon">←</span> Home</a>
+  <div class="sidebar-footer">
+    <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:6px" id="user-email">Loading...</div>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--dim);cursor:pointer" onclick="logout()">Sign out</div>
+  </div>
+</nav>
+
+<main class="main">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+    <div>
+      <div class="page-title">Supplier CRM</div>
+      <div class="page-sub">Track your wholesale supplier relationships</div>
+    </div>
+    <button class="btn btn-gold" onclick="openAddModal()">+ Add supplier</button>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Active</div><div class="stat-val" style="color:var(--green)" id="stat-active">—</div></div>
+    <div class="stat-card"><div class="stat-label">Approved</div><div class="stat-val" style="color:var(--ws)" id="stat-approved">—</div></div>
+    <div class="stat-card"><div class="stat-label">Applied</div><div class="stat-val" style="color:var(--gold)" id="stat-applied">—</div></div>
+    <div class="stat-card"><div class="stat-label">Prospects</div><div class="stat-val" style="color:var(--muted)" id="stat-prospect">—</div></div>
+  </div>
+
+  <!-- Supplier grid -->
+  <div class="supplier-grid" id="supplier-grid">
+    <div class="empty">
+      <div class="empty-icon">🏭</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">No suppliers yet</div>
+      <div style="font-size:12px;font-family:var(--mono)">Add your first supplier to start tracking relationships</div>
+      <button class="btn btn-gold" onclick="openAddModal()" style="margin-top:16px">+ Add first supplier</button>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="supplier-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add supplier</div>
+    <div class="modal-sub">Track this supplier's contact info, terms, and status</div>
+
+    <div class="field"><label>Supplier name *</label><input id="s-name" placeholder="e.g. Quantum Health"></div>
+    <div class="g2">
+      <div class="field"><label>Platform/Source</label>
+        <select id="s-platform">
+          <option value="">Select source</option>
+          <option value="Faire">Faire</option>
+          <option value="RangeMe">RangeMe</option>
+          <option value="Wholesale Central">Wholesale Central</option>
+          <option value="UNFI">UNFI</option>
+          <option value="KeHE">KeHE</option>
+          <option value="Direct">Direct brand</option>
+          <option value="Trade Show">Trade Show</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="s-status">
+          <option value="prospect">Prospect</option>
+          <option value="applied">Applied</option>
+          <option value="approved">Approved</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Contact name</label><input id="s-contact" placeholder="e.g. Sarah Johnson"></div>
+      <div class="field"><label>Email</label><input id="s-email" type="email" placeholder="wholesale@brand.com"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Phone</label><input id="s-phone" placeholder="555-000-0000"></div>
+      <div class="field"><label>Website</label><input id="s-website" placeholder="brand.com"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Minimum order (MOQ)</label><input id="s-moq" placeholder="e.g. $300 or 12 units"></div>
+      <div class="field"><label>Payment terms</label>
+        <select id="s-terms">
+          <option value="">Select terms</option>
+          <option value="Prepay">Prepay</option>
+          <option value="Net 30">Net 30</option>
+          <option value="Net 60">Net 60</option>
+          <option value="COD">COD</option>
+          <option value="Credit card">Credit card</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Lead time (days)</label><input id="s-leadtime" type="number" placeholder="e.g. 5"></div>
+      <div class="field"><label>Categories</label><input id="s-cats" placeholder="e.g. Health & Household"></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="s-notes" placeholder="Account number, special instructions, rep notes..."></textarea></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="saveSupplier()" style="flex:1" id="save-btn">Save supplier</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- View/Email Modal -->
+<div class="modal-overlay" id="view-modal">
+  <div class="modal">
+    <div class="modal-title" id="view-name">Supplier details</div>
+    <div id="view-content"></div>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn btn-gold" onclick="generateEmail()" id="email-btn">✉ Generate outreach email</button>
+      <button class="btn" onclick="editSupplier()">Edit</button>
+      <button class="btn btn-red btn-sm" onclick="deleteSupplier()">Delete</button>
+      <button class="btn" onclick="closeViewModal()">Close</button>
+    </div>
+    <div class="email-preview" id="email-preview">
+      <div class="email-subject" id="email-subject"></div>
+      <div class="email-body" id="email-body"></div>
+      <button class="btn btn-sm" onclick="copyEmail()" style="margin-top:10px">Copy email</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API = 'https://arbtrade-saas-production.up.railway.app';
+var token = localStorage.getItem('arbtrade_token');
+var suppliers = [];
+var currentSupplier = null;
+var editMode = false;
+
+if(!token) window.location.href = 'login.html';
+
+function getHeaders() {
+  return {'Content-Type':'application/json','Authorization':'Bearer '+token};
+}
+
+function logout() {
+  localStorage.removeItem('arbtrade_token');
+  localStorage.removeItem('arbtrade_user');
+  window.location.href = 'login.html';
+}
+
+function getStatusClass(status) {
+  return 'status-badge status-' + (status||'prospect');
+}
+
+function renderSuppliers() {
+  var grid = document.getElementById('supplier-grid');
+  if(!suppliers.length) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🏭</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">No suppliers yet</div><div style="font-size:12px;font-family:var(--mono)">Add your first supplier to start tracking relationships</div><button class="btn btn-gold" onclick="openAddModal()" style="margin-top:16px">+ Add first supplier</button></div>';
+    return;
+  }
+
+  grid.innerHTML = suppliers.map(function(s) {
+    return '<div class="supplier-card" onclick="viewSupplier(\'' + s.id + '\')">' +
+      '<div class="supplier-name">' +
+        '<span>' + s.name + '</span>' +
+        '<span class="' + getStatusClass(s.status) + '">' + (s.status||'prospect') + '</span>' +
+      '</div>' +
+      '<div class="supplier-meta">' +
+        (s.platform ? 'Platform: <span>' + s.platform + '</span><br>' : '') +
+        (s.contact_name ? 'Contact: <span>' + s.contact_name + '</span><br>' : '') +
+        (s.email ? 'Email: <span>' + s.email + '</span><br>' : '') +
+        (s.moq ? 'MOQ: <span>' + s.moq + '</span><br>' : '') +
+        (s.payment_terms ? 'Terms: <span>' + s.payment_terms + '</span><br>' : '') +
+        (s.categories ? 'Categories: <span>' + s.categories + '</span>' : '') +
+      '</div>' +
+      '<div class="supplier-actions">' +
+        '<button class="btn btn-sm" onclick="event.stopPropagation();viewSupplier(\'' + s.id + '\')">View</button>' +
+        '<button class="btn btn-sm btn-gold" onclick="event.stopPropagation();generateEmailDirect(\'' + s.id + '\')">✉ Email</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Update stats
+  document.getElementById('stat-total').textContent    = suppliers.length;
+  document.getElementById('stat-active').textContent   = suppliers.filter(function(s){return s.status==='active'}).length;
+  document.getElementById('stat-approved').textContent = suppliers.filter(function(s){return s.status==='approved'}).length;
+  document.getElementById('stat-applied').textContent  = suppliers.filter(function(s){return s.status==='applied'}).length;
+  document.getElementById('stat-prospect').textContent = suppliers.filter(function(s){return s.status==='prospect'}).length;
+}
+
+async function loadSuppliers() {
+  try {
+    var resp = await fetch(API+'/suppliers', {headers:getHeaders()});
+    if(resp.status===401){logout();return}
+    var data = await resp.json();
+    suppliers = data.suppliers || [];
+    renderSuppliers();
+  } catch(e) { console.error('Load error:', e); }
+}
+
+function openAddModal() {
+  editMode = false;
+  currentSupplier = null;
+  document.getElementById('modal-title').textContent = 'Add supplier';
+  document.getElementById('save-btn').textContent = 'Save supplier';
+  ['s-name','s-contact','s-email','s-phone','s-website','s-moq','s-cats','s-notes'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('s-platform').value = '';
+  document.getElementById('s-status').value = 'prospect';
+  document.getElementById('s-terms').value = '';
+  document.getElementById('s-leadtime').value = '';
+  document.getElementById('supplier-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('supplier-modal').classList.remove('show');
+}
+
+function closeViewModal() {
+  document.getElementById('view-modal').classList.remove('show');
+  document.getElementById('email-preview').classList.remove('show');
+}
+
+function viewSupplier(id) {
+  currentSupplier = suppliers.find(function(s){return s.id===id});
+  if(!currentSupplier) return;
+
+  document.getElementById('view-name').textContent = currentSupplier.name;
+  document.getElementById('view-content').innerHTML =
+    '<div style="background:var(--bg3);border-radius:8px;padding:14px 16px;margin-bottom:12px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+    '<span class="' + getStatusClass(currentSupplier.status) + '">' + (currentSupplier.status||'prospect') + '</span>' +
+    (currentSupplier.platform ? '<span style="font-size:11px;font-family:var(--mono);color:var(--muted)">' + currentSupplier.platform + '</span>' : '') +
+    '</div>' +
+    '<div style="font-size:12px;font-family:var(--mono);color:var(--muted);line-height:2">' +
+    (currentSupplier.contact_name ? 'Contact: <span style="color:var(--text)">' + currentSupplier.contact_name + '</span><br>' : '') +
+    (currentSupplier.email ? 'Email: <span style="color:var(--text)">' + currentSupplier.email + '</span><br>' : '') +
+    (currentSupplier.phone ? 'Phone: <span style="color:var(--text)">' + currentSupplier.phone + '</span><br>' : '') +
+    (currentSupplier.website ? 'Website: <span style="color:var(--text)">' + currentSupplier.website + '</span><br>' : '') +
+    (currentSupplier.moq ? 'MOQ: <span style="color:var(--text)">' + currentSupplier.moq + '</span><br>' : '') +
+    (currentSupplier.payment_terms ? 'Terms: <span style="color:var(--text)">' + currentSupplier.payment_terms + '</span><br>' : '') +
+    (currentSupplier.lead_time_days ? 'Lead time: <span style="color:var(--text)">' + currentSupplier.lead_time_days + ' days</span><br>' : '') +
+    (currentSupplier.categories ? 'Categories: <span style="color:var(--text)">' + currentSupplier.categories + '</span><br>' : '') +
+    '</div>' +
+    (currentSupplier.notes ? '<div style="margin-top:10px;font-size:12px;font-family:var(--mono);color:var(--muted);border-top:1px solid var(--border);padding-top:10px">' + currentSupplier.notes + '</div>' : '') +
+    '</div>';
+
+  document.getElementById('view-modal').classList.add('show');
+}
+
+function editSupplier() {
+  if(!currentSupplier) return;
+  editMode = true;
+  document.getElementById('modal-title').textContent = 'Edit supplier';
+  document.getElementById('save-btn').textContent = 'Update supplier';
+  document.getElementById('s-name').value         = currentSupplier.name || '';
+  document.getElementById('s-contact').value      = currentSupplier.contact_name || '';
+  document.getElementById('s-email').value        = currentSupplier.email || '';
+  document.getElementById('s-phone').value        = currentSupplier.phone || '';
+  document.getElementById('s-website').value      = currentSupplier.website || '';
+  document.getElementById('s-platform').value     = currentSupplier.platform || '';
+  document.getElementById('s-status').value       = currentSupplier.status || 'prospect';
+  document.getElementById('s-moq').value          = currentSupplier.moq || '';
+  document.getElementById('s-terms').value        = currentSupplier.payment_terms || '';
+  document.getElementById('s-leadtime').value     = currentSupplier.lead_time_days || '';
+  document.getElementById('s-cats').value         = currentSupplier.categories || '';
+  document.getElementById('s-notes').value        = currentSupplier.notes || '';
+  closeViewModal();
+  document.getElementById('supplier-modal').classList.add('show');
+}
+
+async function saveSupplier() {
+  var name = document.getElementById('s-name').value.trim();
+  if(!name) { alert('Supplier name is required'); return; }
+
+  var btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  var payload = {
+    name:          name,
+    contact_name:  document.getElementById('s-contact').value,
+    email:         document.getElementById('s-email').value,
+    phone:         document.getElementById('s-phone').value,
+    website:       document.getElementById('s-website').value,
+    platform:      document.getElementById('s-platform').value,
+    status:        document.getElementById('s-status').value,
+    moq:           document.getElementById('s-moq').value,
+    payment_terms: document.getElementById('s-terms').value,
+    lead_time_days:parseInt(document.getElementById('s-leadtime').value||0),
+    categories:    document.getElementById('s-cats').value,
+    notes:         document.getElementById('s-notes').value,
+  };
+
+  try {
+    var url    = editMode ? API+'/suppliers/'+currentSupplier.id : API+'/suppliers';
+    var method = editMode ? 'PUT' : 'POST';
+    var resp   = await fetch(url, {method, headers:getHeaders(), body:JSON.stringify(payload)});
+    if(!resp.ok) throw new Error('Save failed');
+    await loadSuppliers();
+    closeModal();
+  } catch(e) {
+    alert('Error saving supplier: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = editMode ? 'Update supplier' : 'Save supplier';
+}
+
+async function deleteSupplier() {
+  if(!currentSupplier || !confirm('Delete ' + currentSupplier.name + '?')) return;
+  try {
+    await fetch(API+'/suppliers/'+currentSupplier.id, {method:'DELETE', headers:getHeaders()});
+    await loadSuppliers();
+    closeViewModal();
+  } catch(e) { alert('Error deleting supplier'); }
+}
+
+async function generateEmail() {
+  if(!currentSupplier) return;
+  var btn = document.getElementById('email-btn');
+  btn.disabled = true;
+  btn.textContent = '✉ Generating...';
+
+  try {
+    var resp = await fetch(API+'/suppliers/'+currentSupplier.id+'/generate-email', {
+      method:'POST', headers:getHeaders()
+    });
+    var data = await resp.json();
+    document.getElementById('email-subject').textContent = 'Subject: ' + data.subject;
+    document.getElementById('email-body').textContent    = data.body;
+    document.getElementById('email-preview').classList.add('show');
+  } catch(e) {
+    alert('Error generating email');
+  }
+  btn.disabled = false;
+  btn.textContent = '✉ Generate outreach email';
+}
+
+async function generateEmailDirect(id) {
+  currentSupplier = suppliers.find(function(s){return s.id===id});
+  viewSupplier(id);
+  await generateEmail();
+}
+
+function copyEmail() {
+  var text = 'Subject: ' + document.getElementById('email-subject').textContent + '\n\n' +
+             document.getElementById('email-body').textContent;
+  navigator.clipboard.writeText(text).then(function(){alert('Copied!')});
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click', function(e){
+    if(e.target===o) {
+      o.classList.remove('show');
+      document.getElementById('email-preview').classList.remove('show');
+    }
+  });
+});
+
+// Load user email
+var user = JSON.parse(localStorage.getItem('arbtrade_user')||'{}');
+if(user.email) document.getElementById('user-email').textContent = user.email;
+
+// Init
+loadSuppliers();
+</script>
+</body>
+</html>

@@ -630,3 +630,129 @@ async def update_experience(req: ExperienceUpdate, user=Depends(get_current_user
 async def get_experience(user=Depends(get_current_user)):
     profile = await get_user_profile(user.id)
     return {"experience_level": profile.get("experience_level","new") if profile else "new"}
+
+# ── Supplier CRM ─────────────────────────────────────────────────────────────
+
+class SupplierCreate(BaseModel):
+    name: str
+    contact_name: str = ""
+    email: str = ""
+    phone: str = ""
+    website: str = ""
+    platform: str = ""        # Faire, RangeMe, Direct, etc
+    status: str = "prospect"  # prospect, applied, approved, active, paused
+    moq: str = ""             # Minimum order quantity
+    payment_terms: str = ""   # Net 30, Net 60, COD, etc
+    lead_time_days: int = 0
+    notes: str = ""
+    categories: str = ""
+
+class SupplierUpdate(BaseModel):
+    contact_name: str = ""
+    email: str = ""
+    phone: str = ""
+    website: str = ""
+    platform: str = ""
+    status: str = ""
+    moq: str = ""
+    payment_terms: str = ""
+    lead_time_days: int = 0
+    notes: str = ""
+    categories: str = ""
+
+@app.get("/suppliers")
+async def get_suppliers(user=Depends(get_current_user)):
+    """Get all suppliers for the current user."""
+    try:
+        result = supabase_admin.table("suppliers").select("*").eq("user_id", user.id).order("name").execute()
+        return {"suppliers": result.data or []}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/suppliers")
+async def create_supplier(req: SupplierCreate, user=Depends(get_current_user)):
+    """Add a new supplier."""
+    try:
+        data = {
+            "user_id":       user.id,
+            "name":          req.name,
+            "contact_name":  req.contact_name,
+            "email":         req.email,
+            "phone":         req.phone,
+            "website":       req.website,
+            "platform":      req.platform,
+            "status":        req.status,
+            "moq":           req.moq,
+            "payment_terms": req.payment_terms,
+            "lead_time_days":req.lead_time_days,
+            "notes":         req.notes,
+            "categories":    req.categories,
+            "created_at":    datetime.now().isoformat(),
+            "updated_at":    datetime.now().isoformat(),
+        }
+        result = supabase_admin.table("suppliers").insert(data).execute()
+        return {"supplier": result.data[0] if result.data else {}}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/suppliers/{supplier_id}")
+async def update_supplier(supplier_id: str, req: SupplierUpdate, user=Depends(get_current_user)):
+    """Update a supplier."""
+    try:
+        update_data = {k: v for k, v in req.dict().items() if v}
+        update_data["updated_at"] = datetime.now().isoformat()
+        supabase_admin.table("suppliers").update(update_data).eq("id", supplier_id).eq("user_id", user.id).execute()
+        return {"message": "Supplier updated"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/suppliers/{supplier_id}")
+async def delete_supplier(supplier_id: str, user=Depends(get_current_user)):
+    """Delete a supplier."""
+    try:
+        supabase_admin.table("suppliers").delete().eq("id", supplier_id).eq("user_id", user.id).execute()
+        return {"message": "Supplier deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/suppliers/{supplier_id}/generate-email")
+async def generate_outreach_email(supplier_id: str, user=Depends(get_current_user)):
+    """Generate a professional account opening email for a supplier."""
+    try:
+        result = supabase_admin.table("suppliers").select("*").eq("id", supplier_id).eq("user_id", user.id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+
+        supplier = result.data[0]
+        profile  = await get_user_profile(user.id)
+
+        prompt = (
+            "Write a professional wholesale account opening email to a supplier.\n\n"
+            "Supplier: " + supplier.get("name","") + "\n"
+            "Platform: " + supplier.get("platform","") + "\n"
+            "Categories: " + supplier.get("categories","Health and Wellness") + "\n"
+            "Seller business: Amazon FBA seller focused on " + supplier.get("categories","Health & Household") + "\n\n"
+            "The email should:\n"
+            "- Be professional but warm\n"
+            "- Mention Amazon FBA experience\n"
+            "- Ask about wholesale pricing, MOQ, and payment terms\n"
+            "- Express genuine interest in a long-term relationship\n"
+            "- Be concise (under 200 words)\n"
+            "- Include placeholders for [Business Name] and [Your Name]\n\n"
+            "Return ONLY the email body, no subject line."
+        )
+
+        resp = anthropic_client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=400,
+            messages=[{"role":"user","content":prompt}]
+        )
+        email_body = "".join(b.text for b in resp.content if hasattr(b,"text")).strip()
+
+        return {
+            "subject": "Wholesale Account Application — [Business Name]",
+            "body": email_body,
+            "supplier": supplier.get("name","")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
