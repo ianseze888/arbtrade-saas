@@ -157,7 +157,10 @@ def normalize_lead(lead):
         lead["risk_flags"] = [lead["risk_flags"]] if lead["risk_flags"] else []
     return lead
 
-def run_agent_for_user(user_id: str, criteria: dict) -> list:
+# Agent logic moved to agent_saas.py
+from agent_saas import run_agent_for_user, get_lead_history_days, deduplicate_leads
+
+def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
     ws = criteria.get("wholesale", {})
     oa = criteria.get("online_arbitrage", {})
     leads = []
@@ -194,7 +197,8 @@ def run_agent_for_user(user_id: str, criteria: dict) -> list:
 
 async def save_leads_for_user(user_id: str, leads: list):
     """Save leads to Supabase, keeping 48h window."""
-    cutoff = (datetime.now() - timedelta(hours=48)).isoformat()
+    history_days = get_lead_history_days(tier)
+        cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     try:
         # Delete old leads
         supabase_admin.table("leads").delete().eq("user_id", user_id).lt("found_at", cutoff).execute()
