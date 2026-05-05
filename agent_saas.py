@@ -256,13 +256,34 @@ def run_agent_for_user(user_id: str, criteria: dict, ai_client) -> list:
     return leads
 
 def get_lead_history_days(tier: str) -> int:
-    """Return lead history window in days based on subscription tier."""
+    """Lead history window per tier."""
     return {
-        "trial":   3,
-        "starter": 7,
-        "pro":     30,
-        "agency":  90,
+        "trial":   3,    # Trial gets 3 days — enough to evaluate
+        "starter": 7,    # 7-day rolling window
+        "pro":     30,   # 30-day trend analysis
+        "agency":  90,   # Full quarter of data
+        "custom":  90,   # Custom gets agency-level history
     }.get(tier, 7)
+
+def get_leads_per_cycle(tier: str) -> int:
+    """How many leads to generate per scan cycle."""
+    return {
+        "trial":   3,    # 50% of starter
+        "starter": 5,    # 5 x 2 scans/day = 10/day, ~300/month
+        "pro":     8,    # 8 x 3 scans/day = 24/day, ~720/month
+        "agency":  12,   # 12 x 4 scans/day = 48/day, ~1440/month
+        "custom":  25,   # Negotiated
+    }.get(tier, 5)
+
+def get_scan_interval(tier: str) -> int:
+    """Scan interval in hours per tier."""
+    return {
+        "trial":   12,
+        "starter": 12,
+        "pro":     8,
+        "agency":  6,
+        "custom":  4,
+    }.get(tier, 12)
 
 def deduplicate_leads(leads: list) -> list:
     """Remove duplicate leads by ASIN."""

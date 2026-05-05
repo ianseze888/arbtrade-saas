@@ -47,11 +47,47 @@ STRIPE_PRICES = {
 }
 
 # Usage limits per tier
+# Lead structure — designed to deliver value without over-delivering
+# Trial gets 50% of paid volume — enough to see quality, not enough to run without paying
+# Scan intervals: Starter 12hr, Pro 8hr, Agency 6hr
+# Cost per lead: Starter $0.16, Pro $0.13, Agency $0.14
+# vs VA cost: $1.60-2.13/lead — 10x better value
 TIER_LIMITS = {
-    "starter": {"manual_scans_per_day": 1,  "max_leads": 20,  "categories": 2},
-    "pro":     {"manual_scans_per_day": 3,  "max_leads": 50,  "categories": 5},
-    "agency":  {"manual_scans_per_day": 10, "max_leads": 100, "categories": 999},
-    "trial":   {"manual_scans_per_day": 1,  "max_leads": 10,  "categories": 1},
+    "starter": {
+        "manual_scans_per_day": 1,
+        "max_leads": 5,           # 5 leads/cycle x 2 scans/day = 10/day, 300/month
+        "categories": 2,
+        "scan_interval_hours": 12, # Every 12 hours
+        "leads_per_cycle": 5,
+    },
+    "pro": {
+        "manual_scans_per_day": 2,
+        "max_leads": 8,           # 8 leads/cycle x 3 scans/day = 24/day, 720/month
+        "categories": 5,
+        "scan_interval_hours": 8,  # Every 8 hours
+        "leads_per_cycle": 8,
+    },
+    "agency": {
+        "manual_scans_per_day": 3,
+        "max_leads": 12,          # 12 leads/cycle x 4 scans/day = 48/day, 1440/month
+        "categories": 999,
+        "scan_interval_hours": 6,  # Every 6 hours
+        "leads_per_cycle": 12,
+    },
+    "custom": {
+        "manual_scans_per_day": 10,
+        "max_leads": 25,          # Negotiated — contact for custom pricing
+        "categories": 999,
+        "scan_interval_hours": 4,
+        "leads_per_cycle": 25,
+    },
+    "trial": {
+        "manual_scans_per_day": 1,
+        "max_leads": 3,           # 50% of starter — enough to see value
+        "categories": 2,
+        "scan_interval_hours": 12,
+        "leads_per_cycle": 3,
+    },
 }
 
 logging.basicConfig(level=logging.INFO)
