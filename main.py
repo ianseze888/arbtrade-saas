@@ -882,3 +882,174 @@ async def update_order_status(order_id: str, status: str, user=Depends(get_curre
         return {"message": "Order status updated to " + status}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Reorder Trigger System ────────────────────────────────────────────────────
+
+class ActiveSKU(BaseModel):
+    asin: str
+    product_name: str
+    supplier_name: str = ""
+    units_in_stock: int = 0
+    daily_sales_velocity: float = 0.0
+    reorder_point_days: int = 30
+    reorder_quantity: int = 0
+    unit_cost: str = ""
+    notes: str = ""
+
+@app.get("/skus")
+async def get_skus(user=Depends(get_current_user)):
+    """Get all active SKUs being monitored."""
+    try:
+        result = supabase_admin.table("active_skus").select("*").eq("user_id", user.id).order("product_name").execute()
+        skus = result.data or []
+        # Calculate days of stock remaining for each SKU
+        for sku in skus:
+            velocity = sku.get("daily_sales_velocity", 0)
+            stock    = sku.get("units_in_stock", 0)
+            if velocity and velocity > 0:
+                sku["days_remaining"] = round(stock / velocity)
+                sku["reorder_needed"] = sku["days_remaining"] <= sku.get("reorder_point_days", 30)
+            else:
+                sku["days_remaining"] = None
+                sku["reorder_needed"] = False
+        return {"skus": skus}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/skus")
+async def add_sku(req: ActiveSKU, user=Depends(get_current_user)):
+    """Add a SKU to monitor for reorder triggers."""
+    try:
+        data = {
+            "user_id":              user.id,
+            "asin":                 req.asin,
+            "product_name":         req.product_name,
+            "supplier_name":        req.supplier_name,
+            "units_in_stock":       req.units_in_stock,
+            "daily_sales_velocity": req.daily_sales_velocity,
+            "reorder_point_days":   req.reorder_point_days,
+            "reorder_quantity":     req.reorder_quantity,
+            "unit_cost":            req.unit_cost,
+            "notes":                req.notes,
+            "created_at":           datetime.now().isoformat(),
+            "updated_at":           datetime.now().isoformat(),
+        }
+        result = supabase_admin.table("active_skus").insert(data).execute()
+        return {"sku": result.data[0] if result.data else {}}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/skus/{sku_id}")
+async def update_sku(sku_id: str, req: ActiveSKU, user=Depends(get_current_user)):
+    """Update a SKU's stock level and settings."""
+    try:
+        update_data = {k:v for k,v in req.dict().items() if v}
+        update_data["updated_at"] = datetime.now().isoformat()
+        supabase_admin.table("active_skus").update(update_data).eq("id", sku_id).eq("user_id", user.id).execute()
+        return {"message": "SKU updated"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/skus/{sku_id}")
+async def delete_sku(sku_id: str, user=Depends(get_current_user)):
+    """Remove a SKU from monitoring."""
+    try:
+        supabase_admin.table("active_skus").delete().eq("id", sku_id).eq("user_id", user.id).execute()
+        return {"message": "SKU removed"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/skus/alerts")
+async def get_reorder_alerts(user=Depends(get_current_user)):
+    """Get SKUs that need reordering now."""
+    try:
+        result = supabase_admin.table("active_skus").select("*").eq("user_id", user.id).execute()
+        alerts = []
+        for sku in (result.data or []):
+            velocity = sku.get("daily_sales_velocity", 0)
+            stock    = sku.get("units_in_stock", 0)
+            if velocity and velocity > 0:
+                days_remaining = round(stock / velocity)
+                if days_remaining <= sku.get("reorder_point_days", 30):
+                    sku["days_remaining"] = days_remaining
+                    sku["urgency"] = "critical" if days_remaining <= 14 else "warning"
+                    alerts.append(sku)
+        alerts.sort(key=lambda x: x.get("days_remaining", 999))
+        return {"alerts": alerts, "count": len(alerts)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+def check_reorder_alerts_job():
+    """Scheduled job — checks all users' SKUs for reorder triggers daily."""
+    log.info("Running reorder alert check...")
+    try:
+        users = supabase_admin.table("profiles").select("id,email,tier").neq("tier","cancelled").execute()
+        for profile in (users.data or []):
+            user_id = profile["id"]
+            email   = profile.get("email","")
+            result  = supabase_admin.table("active_skus").select("*").eq("user_id", user_id).execute()
+            alerts  = []
+            for sku in (result.data or []):
+                velocity = sku.get("daily_sales_velocity", 0)
+                stock    = sku.get("units_in_stock", 0)
+                if velocity and velocity > 0:
+                    days = round(stock / velocity)
+                    if days <= sku.get("reorder_point_days", 30):
+                        sku["days_remaining"] = days
+                        alerts.append(sku)
+            if alerts and email:
+                send_reorder_alert(email, alerts)
+        log.info("Reorder alert check complete")
+    except Exception as e:
+        log.error("Reorder alert error: " + str(e))
+
+def send_reorder_alert(email: str, alerts: list):
+    """Send reorder alert email via SendGrid."""
+    if not SENDGRID_API_KEY:
+        return
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        items = ""
+        for a in alerts:
+            days = a.get("days_remaining", 0)
+            urgency_color = "#FF5C5C" if days <= 14 else "#c8a96e"
+            items += (
+                '<div style="background:#161719;border:1px solid rgba(255,255,255,0.08);'
+                'border-radius:8px;padding:14px 16px;margin-bottom:10px;'
+                'border-left:3px solid ' + urgency_color + '">'
+                '<div style="font-size:14px;font-weight:600;color:#f2efe8;margin-bottom:4px">' + a.get("product_name","") + '</div>'
+                '<div style="font-size:12px;font-family:monospace;color:#888884">'
+                'Days remaining: <strong style="color:' + urgency_color + '">' + str(days) + ' days</strong> &nbsp;·&nbsp; '
+                'Units in stock: <strong style="color:#f2efe8">' + str(a.get("units_in_stock","")) + '</strong> &nbsp;·&nbsp; '
+                'Velocity: <strong style="color:#f2efe8">' + str(a.get("daily_sales_velocity","")) + '/day</strong>'
+                '</div>'
+                '</div>'
+            )
+        html = (
+            '<body style="background:#0a0a08;font-family:sans-serif;padding:32px">'
+            '<div style="max-width:560px;margin:0 auto">'
+            '<div style="font-size:10px;color:#c8a96e;font-family:monospace;letter-spacing:.15em;margin-bottom:4px">ARBTRADE</div>'
+            '<div style="font-size:18px;font-weight:700;color:#f2efe8;margin-bottom:4px">⚠ Reorder Alert</div>'
+            '<div style="font-size:12px;color:#888884;font-family:monospace;margin-bottom:20px">'
+            + str(len(alerts)) + ' SKU(s) need reordering now</div>'
+            + items +
+            '<a href="https://monumental-hamster-dd12a2.netlify.app/dashboard.html" '
+            'style="display:inline-block;background:#c8a96e;color:#000;font-weight:700;'
+            'padding:10px 20px;border-radius:6px;text-decoration:none;margin-top:16px;font-size:12px">'
+            'Open Dashboard →</a>'
+            '</div></body>'
+        )
+        msg = Mail(
+            from_email=(FROM_EMAIL, FROM_NAME),
+            to_emails=email,
+            subject="⚠ ARBTRADE Reorder Alert — " + str(len(alerts)) + " SKU(s) need attention",
+            html_content=html
+        )
+        SendGridAPIClient(SENDGRID_API_KEY).send(msg)
+        log.info("Reorder alert sent to " + email)
+    except Exception as e:
+        log.error("Reorder alert email error: " + str(e))
+
+# Schedule reorder check daily at 9 AM
+schedule.every().day.at("09:00").do(check_reorder_alerts_job)

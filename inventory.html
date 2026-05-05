@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — Inventory Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f2efe8;--muted:#888884;--dim:#555552;--gold:#c8a96e;--gold2:#e8c98a;--ws:#4A9EFF;--oa:#3ECFA0;--red:#FF5C5C;--green:#3ECFA0;--mono:'DM Mono',monospace;--sans:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+.shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .15s;border-left:2px solid transparent;text-decoration:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--text);border-left-color:var(--gold);background:rgba(200,169,110,.05)}
+.nav-icon{font-size:14px;width:16px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:12px 16px 0;border-top:1px solid var(--border)}
+.main{padding:28px 32px}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:24px}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.stat-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+.stat-val{font-size:22px;font-weight:700}
+.sku-grid{display:flex;flex-direction:column;gap:8px}
+.sku-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;transition:border-color .15s}
+.sku-card:hover{border-color:var(--border2)}
+.sku-card.alert-critical{border-left:3px solid var(--red)}
+.sku-card.alert-warning{border-left:3px solid var(--gold)}
+.sku-card.alert-ok{border-left:3px solid var(--green)}
+.sku-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.sku-asin{font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px}
+.sku-meta{display:flex;gap:16px;font-size:11px;font-family:var(--mono);color:var(--muted);flex-wrap:wrap}
+.sku-meta strong{color:var(--text)}
+.days-badge{font-size:28px;font-weight:700;text-align:right}
+.days-label{font-size:10px;font-family:var(--mono);color:var(--muted);text-align:right}
+.sku-actions{display:flex;gap:6px;margin-top:10px}
+button.btn{font-family:var(--sans);cursor:pointer;font-size:12px;font-weight:500;border-radius:8px;border:1px solid var(--border2);padding:7px 14px;background:var(--bg3);color:var(--text);transition:all .15s}
+button.btn:hover{background:rgba(255,255,255,.07)}
+button.btn-gold{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+button.btn-sm{padding:5px 10px;font-size:11px}
+button.btn-red{background:rgba(255,92,92,.08);border-color:rgba(255,92,92,.2);color:var(--red)}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.3}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px 32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:20px}
+.field{margin-bottom:14px}
+label{display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+input,select{width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none;transition:border .15s}
+input:focus{border-color:var(--gold)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.alert-banner{background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:none}
+.alert-banner.show{display:block}
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;padding:0;border-right:none;border-top:1px solid var(--border);z-index:100;overflow-x:auto}
+  .logo,.sidebar-footer{display:none}
+  .nav-item{flex-direction:column;gap:3px;padding:8px 12px;border-left:none;border-top:2px solid transparent;font-size:10px;min-width:56px;text-align:center}
+  .nav-item.active{border-left:none;border-top-color:var(--gold)}
+  .nav-icon{font-size:18px;width:auto}
+  .main{padding:16px 16px 80px}
+  .stats-bar{grid-template-columns:1fr 1fr}
+  .sku-card{grid-template-columns:1fr}
+  .g2,.g3{grid-template-columns:1fr}
+  input,select{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="sidebar">
+  <div class="logo"><div class="logo-mark">ARBTRADE</div><div class="logo-name">Research Hub</div></div>
+  <a class="nav-item" href="dashboard.html"><span class="nav-icon">◈</span> Dashboard</a>
+  <a class="nav-item" href="dashboard.html"><span class="nav-icon">≡</span> Results</a>
+  <a class="nav-item" href="suppliers.html"><span class="nav-icon">🏭</span> Suppliers</a>
+  <a class="nav-item active" href="inventory.html"><span class="nav-icon">📦</span> Inventory</a>
+  <a class="nav-item" href="dashboard.html"><span class="nav-icon">⚙</span> Criteria</a>
+  <a class="nav-item" href="dashboard.html"><span class="nav-icon">💳</span> Billing</a>
+  <a class="nav-item" href="index.html"><span class="nav-icon">←</span> Home</a>
+  <div class="sidebar-footer">
+    <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:6px" id="user-email"></div>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--dim);cursor:pointer" onclick="logout()">Sign out</div>
+  </div>
+</nav>
+<main class="main">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+    <div>
+      <div class="page-title">Inventory Monitor</div>
+      <div class="page-sub">Track active SKUs and get reorder alerts before you stock out</div>
+    </div>
+    <button class="btn btn-gold" onclick="openAddModal()">+ Add SKU</button>
+  </div>
+
+  <!-- Alert banner -->
+  <div class="alert-banner" id="alert-banner">
+    <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:4px">⚠ Reorder alerts active</div>
+    <div style="font-size:12px;font-family:var(--mono);color:var(--muted)" id="alert-text"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">SKUs monitored</div><div class="stat-val white-c" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Need reorder</div><div class="stat-val" style="color:var(--red)" id="stat-alerts">—</div></div>
+    <div class="stat-card"><div class="stat-label">Critical (≤14 days)</div><div class="stat-val" style="color:var(--red)" id="stat-critical">—</div></div>
+    <div class="stat-card"><div class="stat-label">Healthy stock</div><div class="stat-val" style="color:var(--green)" id="stat-ok">—</div></div>
+  </div>
+
+  <!-- SKU list -->
+  <div class="sku-grid" id="sku-grid">
+    <div class="empty"><div class="empty-icon">📦</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">No SKUs monitored yet</div><div style="font-size:12px;font-family:var(--mono)">Add active SKUs to get reorder alerts before you stock out</div><button class="btn btn-gold" onclick="openAddModal()" style="margin-top:16px">+ Add first SKU</button></div>
+  </div>
+</main>
+</div>
+
+<!-- Add SKU Modal -->
+<div class="modal-overlay" id="sku-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Add SKU to monitor</div>
+    <div class="modal-sub">Track inventory levels and get alerted when it's time to reorder</div>
+    <div class="field"><label>Product name *</label><input id="s-name" placeholder="e.g. Quantum Health TheraZinc 18ct"></div>
+    <div class="field"><label>ASIN *</label><input id="s-asin" placeholder="e.g. B00XXXXXXX"></div>
+    <div class="field"><label>Supplier</label><input id="s-supplier" placeholder="e.g. Faire - Quantum Health"></div>
+    <div class="g3">
+      <div class="field"><label>Units in stock</label><input id="s-stock" type="number" placeholder="e.g. 120"></div>
+      <div class="field"><label>Sales/day</label><input id="s-velocity" type="number" step="0.1" placeholder="e.g. 4.5"></div>
+      <div class="field"><label>Reorder at (days)</label><input id="s-reorder" type="number" placeholder="30" value="30"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Reorder quantity</label><input id="s-qty" type="number" placeholder="e.g. 48"></div>
+      <div class="field"><label>Unit cost</label><input id="s-cost" placeholder="e.g. $8.50"></div>
+    </div>
+    <div class="field"><label>Notes</label><input id="s-notes" placeholder="Supplier lead time, special instructions..."></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-gold" onclick="saveSKU()" style="flex:1" id="save-btn">Add SKU</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var API = 'https://arbtrade-saas-production.up.railway.app';
+var token = localStorage.getItem('arbtrade_token');
+var skus = [];
+var currentSKU = null;
+if(!token) window.location.href = 'login.html';
+function getHeaders(){return{'Content-Type':'application/json','Authorization':'Bearer '+token}}
+function logout(){localStorage.removeItem('arbtrade_token');window.location.href='login.html'}
+
+function getDaysColor(days){
+  if(days === null) return 'var(--muted)';
+  if(days <= 14) return 'var(--red)';
+  if(days <= 30) return 'var(--gold)';
+  return 'var(--green)';
+}
+
+function getCardClass(sku){
+  var days = sku.days_remaining;
+  if(days === null) return 'sku-card';
+  if(days <= 14) return 'sku-card alert-critical';
+  if(days <= 30) return 'sku-card alert-warning';
+  return 'sku-card alert-ok';
+}
+
+function renderSKUs(){
+  var grid = document.getElementById('sku-grid');
+  if(!skus.length){
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">No SKUs monitored yet</div><div style="font-size:12px;font-family:var(--mono)">Add active SKUs to get reorder alerts before you stock out</div><button class="btn btn-gold" onclick="openAddModal()" style="margin-top:16px">+ Add first SKU</button></div>';
+    return;
+  }
+
+  var alerts = skus.filter(function(s){return s.reorder_needed});
+  var critical = skus.filter(function(s){return s.days_remaining !== null && s.days_remaining <= 14});
+  var ok = skus.filter(function(s){return !s.reorder_needed});
+
+  document.getElementById('stat-total').textContent    = skus.length;
+  document.getElementById('stat-alerts').textContent   = alerts.length;
+  document.getElementById('stat-critical').textContent = critical.length;
+  document.getElementById('stat-ok').textContent       = ok.length;
+
+  if(alerts.length){
+    document.getElementById('alert-banner').classList.add('show');
+    document.getElementById('alert-text').textContent = alerts.length + ' SKU(s) need reordering. Check your email for alerts or reorder now.';
+  }
+
+  // Sort: critical first, then warning, then ok
+  var sorted = skus.slice().sort(function(a,b){
+    var da = a.days_remaining === null ? 999 : a.days_remaining;
+    var db = b.days_remaining === null ? 999 : b.days_remaining;
+    return da - db;
+  });
+
+  grid.innerHTML = sorted.map(function(s){
+    var days = s.days_remaining;
+    var daysColor = getDaysColor(days);
+    var daysText = days !== null ? days + ' days' : '—';
+    return '<div class="' + getCardClass(s) + '">' +
+      '<div>' +
+        '<div class="sku-name">' + s.product_name + '</div>' +
+        '<div class="sku-asin">ASIN: ' + s.asin + (s.supplier_name ? ' · ' + s.supplier_name : '') + '</div>' +
+        '<div class="sku-meta">' +
+          '<span>Stock: <strong>' + s.units_in_stock + ' units</strong></span>' +
+          '<span>Velocity: <strong>' + s.daily_sales_velocity + '/day</strong></span>' +
+          '<span>Reorder at: <strong>' + s.reorder_point_days + ' days</strong></span>' +
+          (s.reorder_quantity ? '<span>Reorder qty: <strong>' + s.reorder_quantity + '</strong></span>' : '') +
+        '</div>' +
+        '<div class="sku-actions">' +
+          '<button class="btn btn-sm" onclick="editSKU(\'' + s.id + '\')">Update stock</button>' +
+          (s.reorder_needed ? '<button class="btn btn-sm btn-gold" onclick="reorderSKU(\'' + s.id + '\')">⟳ Reorder now</button>' : '') +
+          '<button class="btn btn-sm btn-red" onclick="deleteSKU(\'' + s.id + '\')">Remove</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div class="days-badge" style="color:' + daysColor + '">' + daysText + '</div>' +
+        '<div class="days-label">remaining</div>' +
+        (s.reorder_needed ? '<div style="font-size:10px;font-family:var(--mono);color:' + daysColor + ';margin-top:4px">⚠ REORDER NOW</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function loadSKUs(){
+  try{
+    var resp = await fetch(API+'/skus',{headers:getHeaders()});
+    if(resp.status===401){logout();return}
+    var data = await resp.json();
+    skus = data.skus || [];
+    renderSKUs();
+  }catch(e){console.error(e)}
+}
+
+function openAddModal(){
+  currentSKU = null;
+  document.getElementById('modal-title').textContent = 'Add SKU to monitor';
+  document.getElementById('save-btn').textContent = 'Add SKU';
+  ['s-name','s-asin','s-supplier','s-stock','s-velocity','s-qty','s-cost','s-notes'].forEach(function(id){document.getElementById(id).value=''});
+  document.getElementById('s-reorder').value = '30';
+  document.getElementById('sku-modal').classList.add('show');
+}
+
+function closeModal(){document.getElementById('sku-modal').classList.remove('show')}
+
+function editSKU(id){
+  currentSKU = skus.find(function(s){return s.id===id});
+  if(!currentSKU) return;
+  document.getElementById('modal-title').textContent = 'Update SKU';
+  document.getElementById('save-btn').textContent = 'Update SKU';
+  document.getElementById('s-name').value     = currentSKU.product_name||'';
+  document.getElementById('s-asin').value     = currentSKU.asin||'';
+  document.getElementById('s-supplier').value = currentSKU.supplier_name||'';
+  document.getElementById('s-stock').value    = currentSKU.units_in_stock||'';
+  document.getElementById('s-velocity').value = currentSKU.daily_sales_velocity||'';
+  document.getElementById('s-reorder').value  = currentSKU.reorder_point_days||30;
+  document.getElementById('s-qty').value      = currentSKU.reorder_quantity||'';
+  document.getElementById('s-cost').value     = currentSKU.unit_cost||'';
+  document.getElementById('s-notes').value    = currentSKU.notes||'';
+  document.getElementById('sku-modal').classList.add('show');
+}
+
+async function saveSKU(){
+  var name = document.getElementById('s-name').value.trim();
+  var asin = document.getElementById('s-asin').value.trim();
+  if(!name||!asin){alert('Product name and ASIN are required');return}
+  var btn = document.getElementById('save-btn');
+  btn.disabled=true; btn.textContent='Saving...';
+  var payload = {
+    product_name:         name,
+    asin:                 asin,
+    supplier_name:        document.getElementById('s-supplier').value,
+    units_in_stock:       parseInt(document.getElementById('s-stock').value||0),
+    daily_sales_velocity: parseFloat(document.getElementById('s-velocity').value||0),
+    reorder_point_days:   parseInt(document.getElementById('s-reorder').value||30),
+    reorder_quantity:     parseInt(document.getElementById('s-qty').value||0),
+    unit_cost:            document.getElementById('s-cost').value,
+    notes:                document.getElementById('s-notes').value,
+  };
+  try{
+    var url    = currentSKU ? API+'/skus/'+currentSKU.id : API+'/skus';
+    var method = currentSKU ? 'PUT' : 'POST';
+    var resp   = await fetch(url,{method,headers:getHeaders(),body:JSON.stringify(payload)});
+    if(!resp.ok) throw new Error('Save failed');
+    await loadSKUs();
+    closeModal();
+  }catch(e){alert('Error: '+e.message)}
+  btn.disabled=false; btn.textContent=currentSKU?'Update SKU':'Add SKU';
+}
+
+async function deleteSKU(id){
+  if(!confirm('Remove this SKU from monitoring?')) return;
+  try{
+    await fetch(API+'/skus/'+id,{method:'DELETE',headers:getHeaders()});
+    await loadSKUs();
+  }catch(e){alert('Error deleting SKU')}
+}
+
+function reorderSKU(id){
+  var sku = skus.find(function(s){return s.id===id});
+  if(!sku) return;
+  alert('Reorder flow coming soon!\n\nProduct: ' + sku.product_name + '\nSuggested qty: ' + (sku.reorder_quantity||'—') + '\nSupplier: ' + (sku.supplier_name||'—'));
+}
+
+document.getElementById('sku-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+var user = JSON.parse(localStorage.getItem('arbtrade_user')||'{}');
+if(user.email) document.getElementById('user-email').textContent = user.email;
+loadSKUs();
+</script>
+</body>
+</html>
