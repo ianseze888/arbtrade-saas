@@ -196,6 +196,7 @@ def normalize_lead(lead):
 # Agent logic moved to agent_saas.py
 from agent_saas import run_agent_for_user, get_lead_history_days, deduplicate_leads
 from verify_agent import verify_leads_batch, get_verification_badge
+from outreach_agent import run_outreach_for_lead
 
 def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
     ws = criteria.get("wholesale", {})
@@ -259,29 +260,101 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
 
 # ── Scheduled global scan ────────────────────────────────────────────────────
 
-def run_scheduled_scan():
-    """Runs every 4 hours for ALL active subscribers."""
-    log.info("Running scheduled scan for all users...")
+# ── Tier-based scan intervals ────────────────────────────────────────────────
+# Starter: every 12 hours | Pro: every 8 hours | Agency: every 6 hours
+# Each user gets scanned on their own interval based on their tier
+
+import asyncio as _asyncio
+
+def default_criteria():
+    return {
+        "wholesale": {
+            "categories": ["Health & Household"],
+            "max_bsr": 50000,
+            "max_sellers": 8,
+            "min_monthly_sales": 300,
+            "min_roi_percent": 30,
+            "enabled": True
+        },
+        "online_arbitrage": {
+            "categories": ["Health & Household"],
+            "max_bsr": 75000,
+            "max_sellers": 12,
+            "min_monthly_sales": 200,
+            "min_roi_percent": 35,
+            "min_price_spread": 8,
+            "max_buy_cost": 35,
+            "enabled": True
+        }
+    }
+
+def scan_users_for_tier(tier: str):
+    """Scan all users of a specific tier."""
+    limits = TIER_LIMITS.get(tier, TIER_LIMITS["starter"])
+    max_leads = limits["leads_per_cycle"]
+    log.info("Running " + tier + " tier scan (max " + str(max_leads) + " leads/user)...")
     try:
-        users = supabase_admin.table("profiles").select("id,criteria,tier").neq("tier","cancelled").execute()
+        users = supabase_admin.table("profiles").select("id,criteria,tier,email").eq("tier", tier).execute()
+        scanned = 0
         for profile in (users.data or []):
-            user_id = profile["id"]
+            user_id  = profile["id"]
             criteria = profile.get("criteria") or {}
             if isinstance(criteria, str):
-                criteria = json.loads(criteria)
+                try: criteria = json.loads(criteria)
+                except: criteria = {}
             if not criteria:
-                criteria = {"wholesale":{"categories":["Health & Household"],"max_bsr":50000,"max_sellers":8,"min_monthly_sales":300,"min_roi_percent":30},"online_arbitrage":{"categories":["Health & Household"],"max_bsr":75000,"max_sellers":12,"min_monthly_sales":200,"min_roi_percent":35,"min_price_spread":8,"max_buy_cost":35}}
-            leads = run_agent_for_user(user_id, criteria)
-            if leads:
-                import asyncio
-                asyncio.run(save_leads_for_user(user_id, leads))
-            time.sleep(3)
-        log.info("Scheduled scan complete")
+                criteria = default_criteria()
+
+            try:
+                leads = run_agent_for_user(user_id, criteria, anthropic_client)
+                # Trim to tier limit
+                leads = leads[:max_leads]
+                if leads:
+                    loop = _asyncio.new_event_loop()
+                    loop.run_until_complete(save_leads_for_user(user_id, leads, tier))
+                    loop.close()
+                scanned += 1
+                log.info(tier + " scan: user " + user_id[:8] + " got " + str(len(leads)) + " leads")
+            except Exception as e:
+                log.error("Scan error for user " + user_id[:8] + ": " + str(e))
+
+            time.sleep(5)  # Rate limit protection between users
+
+        log.info(tier + " scan complete — " + str(scanned) + " users scanned")
     except Exception as e:
-        log.error(f"Scheduled scan error: {e}")
+        log.error(tier + " scan error: " + str(e))
+
+def scan_trial_and_starter():
+    """Runs every 12 hours — trial and starter users."""
+    scan_users_for_tier("trial")
+    scan_users_for_tier("starter")
+
+def scan_pro():
+    """Runs every 8 hours — pro users."""
+    scan_users_for_tier("pro")
+
+def scan_agency():
+    """Runs every 6 hours — agency users."""
+    scan_users_for_tier("agency")
+
+def scan_custom():
+    """Runs every 4 hours — custom plan users."""
+    scan_users_for_tier("custom")
 
 def start_scheduler():
-    schedule.every(4).hours.do(run_scheduled_scan)
+    """Start the tier-based scan scheduler."""
+    # Tier-based intervals
+    schedule.every(12).hours.do(scan_trial_and_starter)  # Starter & trial
+    schedule.every(8).hours.do(scan_pro)                  # Pro
+    schedule.every(6).hours.do(scan_agency)               # Agency
+    schedule.every(4).hours.do(scan_custom)               # Custom
+
+    # Daily jobs
+    schedule.every().day.at("08:00").do(send_daily_digests_job)
+    schedule.every().day.at("09:00").do(check_reorder_alerts_job)
+
+    log.info("Scheduler started — Starter:12hr | Pro:8hr | Agency:6hr | Custom:4hr")
+
     while True:
         schedule.run_pending()
         time.sleep(60)
@@ -618,7 +691,6 @@ def send_daily_digests_job():
         log.error(f"Daily digest job error: {e}")
 
 # Schedule daily digest at 8 AM
-schedule.every().day.at("08:00").do(send_daily_digests_job)
 
 # ── Experience Level ─────────────────────────────────────────────────────────
 
@@ -1052,4 +1124,102 @@ def send_reorder_alert(email: str, alerts: list):
         log.error("Reorder alert email error: " + str(e))
 
 # Schedule reorder check daily at 9 AM
-schedule.every().day.at("09:00").do(check_reorder_alerts_job)
+
+# ── Outreach Agent ────────────────────────────────────────────────────────────
+
+class OutreachRequest(BaseModel):
+    lead_name: str
+    lead_source: str = ""
+    lead_type: str = "wholesale"
+    seller_name: str = ""
+    business_name: str = ""
+
+@app.post("/outreach/generate")
+async def generate_outreach(req: OutreachRequest, user=Depends(get_current_user)):
+    """Run Agent 3 - generate outreach package for an approved wholesale lead."""
+    try:
+        profile = await get_user_profile(user.id)
+        tier    = profile.get("tier","starter") if profile else "starter"
+
+        # Only Pro and Agency get outreach agent
+        if tier not in ["pro","agency","custom"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Outreach agent available on Pro and Agency plans"
+            )
+
+        lead = {
+            "name":   req.lead_name,
+            "source": req.lead_source,
+            "type":   req.lead_type,
+        }
+
+        result = run_outreach_for_lead(
+            lead        = lead,
+            user_id     = user.id,
+            supabase_admin = supabase_admin,
+            ai_client   = anthropic_client,
+            seller_name = req.seller_name or user.email,
+            business_name = req.business_name or "Amazon FBA Business"
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ── Admin Stats ───────────────────────────────────────────────────────────────
+
+@app.get("/admin/stats")
+async def get_admin_stats(secret: str = ""):
+    """Admin dashboard — platform metrics overview."""
+    admin_secret = os.getenv("ADMIN_SECRET", "arbtrade-admin-2026")
+    if secret != admin_secret:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+    try:
+        # Users
+        users     = supabase_admin.table("profiles").select("id,tier,created_at").execute()
+        all_users = users.data or []
+        tiers     = {}
+        for u in all_users:
+            t = u.get("tier","trial")
+            tiers[t] = tiers.get(t, 0) + 1
+
+        # Leads
+        leads_result = supabase_admin.table("leads").select("id,type,recommendation,found_at").execute()
+        all_leads    = leads_result.data or []
+        today        = datetime.now().date().isoformat()
+        leads_today  = [l for l in all_leads if l.get("found_at","").startswith(today)]
+
+        # Suppliers
+        suppliers = supabase_admin.table("suppliers").select("id").execute()
+
+        # Orders
+        orders = supabase_admin.table("orders").select("id,status").execute()
+
+        # Revenue estimate
+        tier_prices = {"starter":47,"pro":97,"agency":197,"custom":497}
+        mrr = sum(tier_prices.get(u.get("tier",""),0) for u in all_users if u.get("tier") not in ["trial","cancelled",""])
+
+        return {
+            "users": {
+                "total":       len(all_users),
+                "by_tier":     tiers,
+                "paid":        sum(1 for u in all_users if u.get("tier") not in ["trial","cancelled",""]),
+            },
+            "leads": {
+                "total":       len(all_leads),
+                "today":       len(leads_today),
+                "buy":         sum(1 for l in all_leads if l.get("recommendation")=="BUY"),
+                "wholesale":   sum(1 for l in all_leads if l.get("type")=="wholesale"),
+                "oa":          sum(1 for l in all_leads if l.get("type")=="oa"),
+            },
+            "suppliers":       len(suppliers.data or []),
+            "orders":          len(orders.data or []),
+            "mrr_estimate":    "$" + str(mrr),
+            "timestamp":       datetime.now().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

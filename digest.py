@@ -67,7 +67,7 @@ def build_lead_card(lead, index):
         '<div style="font-size:15px;font-weight:600;color:#f2efe8;margin-bottom:4px">' + name + '</div>'
         '<div style="font-size:11px;color:#888884;font-family:monospace;margin-bottom:10px">'
         '&#128205; ' + source + ' &nbsp;&middot;&nbsp; '
-        '<span style="color:' + type_color + ';background:rgba(74,158,255,0.1);padding:2px 7px;border-radius:20px">' + type_label + '</span>'
+        '<span style="color:' + type_color + ';background:rgba(74,158,255,0.1);padding:2px 7px;border-radius:20px">' + type_label + '</span>' + (lead.get('replenishable') == True and ' &nbsp;<span style="color:#3ECFA0;background:rgba(62,207,160,0.1);padding:2px 7px;border-radius:20px">↻ Replenishable</span>' or '')
         '</div>'
         '<div style="font-size:12px;color:#888884;font-family:monospace;margin-bottom:10px">'
         'Buy: <strong style="color:#f2efe8">' + str(buy_cost) + '</strong> &nbsp; '
@@ -78,7 +78,7 @@ def build_lead_card(lead, index):
         + reason_html +
         '<table cellpadding="0" cellspacing="0"><tr>'
         '<td style="padding-right:10px">'
-        '<a href="' + approve_url + '" style="background:#3ECFA0;color:#0a0a08;font-weight:700;font-size:12px;'
+        '<a href="https://monumental-hamster-dd12a2.netlify.app/onboarding.html?lead=' + name_short + '" style="background:rgba(200,169,110,0.1);color:#c8a96e;font-size:11px;padding:6px 14px;border-radius:6px;text-decoration:none;font-family:sans-serif;border:1px solid rgba(200,169,110,0.3);display:inline-block;white-space:nowrap">→ How to source</a>' + '<td style="padding-left:8px">' + '<a href="' + approve_url + '" style="background:#3ECFA0;color:#0a0a08;font-weight:700;font-size:12px;'
         'padding:8px 20px;border-radius:6px;text-decoration:none;font-family:sans-serif;'
         'letter-spacing:.04em;display:inline-block;white-space:nowrap">&#10003; APPROVE</a>'
         '</td>'
@@ -234,7 +234,14 @@ def send_digest(user_email, leads, tier):
         html      = build_email_html(user_email, leads, tier)
         buy_count = sum(1 for l in leads if l.get("recommendation") == "BUY")
         best_roi  = get_best_roi(leads)
-        subject   = "ARBTRADE Daily Digest — " + str(buy_count) + " BUY leads, best ROI " + str(best_roi) + "%"
+        # Personalized subject line based on best lead
+        best_lead_name = ""
+        if buy_leads:
+            best_lead_name = buy_leads[0].get("name","")[:25]
+        if best_lead_name:
+            subject = "🔍 " + best_lead_name + " — " + str(best_roi) + "% ROI · " + str(buy_count) + " BUY leads today"
+        else:
+            subject = "🔍 ARBTRADE Daily Digest — " + str(buy_count) + " BUY leads, best ROI " + str(best_roi) + "%"
         message   = Mail(
             from_email=(FROM_EMAIL, FROM_NAME),
             to_emails=user_email,
