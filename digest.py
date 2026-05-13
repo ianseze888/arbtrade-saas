@@ -67,8 +67,9 @@ def build_lead_card(lead, index):
         '<div style="font-size:15px;font-weight:600;color:#f2efe8;margin-bottom:4px">' + name + '</div>'
         '<div style="font-size:11px;color:#888884;font-family:monospace;margin-bottom:10px">'
         '&#128205; ' + source + ' &nbsp;&middot;&nbsp; '
-        '<span style="color:' + type_color + ';background:rgba(74,158,255,0.1);padding:2px 7px;border-radius:20px">' + type_label + '</span>' + (lead.get('replenishable') == True and ' &nbsp;<span style="color:#3ECFA0;background:rgba(62,207,160,0.1);padding:2px 7px;border-radius:20px">↻ Replenishable</span>' or '')
-        '</div>'
+        '<span style="color:' + type_color + ';background:rgba(74,158,255,0.1);padding:2px 7px;border-radius:20px">' + type_label + '</span>'
+        + (' &nbsp;<span style="color:#3ECFA0;background:rgba(62,207,160,0.1);padding:2px 7px;border-radius:20px">&#8635; Replenishable</span>' if lead.get('replenishable') == True else '')
+        + '</div>'
         '<div style="font-size:12px;color:#888884;font-family:monospace;margin-bottom:10px">'
         'Buy: <strong style="color:#f2efe8">' + str(buy_cost) + '</strong> &nbsp; '
         'Sell: <strong style="color:#f2efe8">' + str(sell_price) + '</strong> &nbsp; '
