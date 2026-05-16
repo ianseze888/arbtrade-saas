@@ -37,7 +37,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Anthropic client
-ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 # Stripe price IDs — update these after creating products in Stripe dashboard
 STRIPE_PRICES = {
