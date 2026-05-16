@@ -161,6 +161,15 @@ button.btn-gold:hover{background:var(--gold2)}
   .metrics { grid-template-columns: 1fr 1fr; }
   .nav-item { padding: 8px 8px; min-width: 48px; font-size: 9px; }
 }
+
+/* Dashboard leads scroll fix */
+#page-dashboard { overflow-y: auto; }
+#dash-leads { max-height: none; overflow: visible; }
+.leads-grid { display: flex; flex-direction: column; gap: 8px; }
+.page.active { display: block; overflow-y: auto; max-height: calc(100vh - 60px); }
+@media(max-width:768px) {
+  .page.active { max-height: calc(100vh - 140px); }
+}
 </style>
 </head>
 <body>
@@ -453,7 +462,7 @@ async function loadLeads() {
     document.getElementById('results-sub').textContent = allLeads.length+' leads · '+data.tier+' plan · auto-refreshes every 5 min';
     var buys=allLeads.filter(function(l){return l.recommendation==='BUY'});
     document.getElementById('dash-count').textContent = buys.length+' BUY recommendations';
-    renderLeads(buys,'dash-leads',3);
+    renderLeads(buys,'dash-leads',null);
     applyFilter();
   } catch(e) {
     document.getElementById('dash-leads').innerHTML='<div class="empty"><div class="empty-icon">◈</div>Could not load leads. Please refresh.</div>';
