@@ -108,7 +108,26 @@ input:focus{border-color:var(--gold)}
       <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn-submit" onclick="handleLogin()" id="login-btn">Sign in →</button>
+    <div style="text-align:center;margin-top:12px">
+      <span style="font-size:12px;font-family:var(--mono);color:var(--muted);cursor:pointer" onclick="showForgotPassword()">Forgot password?</span>
+    </div>
     <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- FORGOT PASSWORD FORM -->
+  <div id="forgot-form" style="display:none">
+    <div style="font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;line-height:1.6">
+      Enter your email and we will send you a password reset link.
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="forgot-email" placeholder="you@email.com">
+    </div>
+    <button class="btn-submit" onclick="handleForgotPassword()" id="forgot-btn">Send reset link →</button>
+    <div class="msg" id="forgot-msg"></div>
+    <div style="text-align:center;margin-top:12px">
+      <span style="font-size:12px;font-family:var(--mono);color:var(--muted);cursor:pointer" onclick="hideForgotPassword()">← Back to sign in</span>
+    </div>
   </div>
 
   <!-- SIGNUP FORM — 3 steps -->
@@ -212,6 +231,40 @@ var mode = 'login';
 
 // Redirect if already logged in
 if(localStorage.getItem('arbtrade_token')) window.location.href = 'dashboard.html';
+
+function showForgotPassword() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('forgot-form').style.display = 'block';
+  document.getElementById('card-title').textContent = 'Reset password';
+  document.getElementById('card-sub').textContent = 'We will send you a reset link';
+}
+
+function hideForgotPassword() {
+  document.getElementById('forgot-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('card-title').textContent = 'Welcome back';
+  document.getElementById('card-sub').textContent = 'Sign in to access your leads';
+}
+
+async function handleForgotPassword() {
+  var email = document.getElementById('forgot-email').value.trim();
+  if(!email) { showMsg('forgot-msg','Please enter your email','error'); return; }
+  var btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    var resp = await fetch(API+'/auth/reset-password', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email: email})
+    });
+    var data = await resp.json();
+    showMsg('forgot-msg', 'Reset link sent! Check your email inbox.', 'success');
+    btn.textContent = 'Sent!';
+  } catch(e) {
+    showMsg('forgot-msg', 'Error sending reset link. Please try again.', 'error');
+    btn.disabled = false; btn.textContent = 'Send reset link →';
+  }
+}
 
 function setMode(m) {
   mode = m;

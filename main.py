@@ -1223,3 +1223,37 @@ async def get_admin_stats(secret: str = ""):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Password Reset ────────────────────────────────────────────────────────────
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+
+class UpdatePasswordRequest(BaseModel):
+    password: str
+    access_token: str
+
+@app.post("/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    """Send password reset email via Supabase."""
+    try:
+        supabase_admin.auth.reset_password_email(
+            req.email,
+            options={"redirect_to": "https://getarbtrade.com/reset-password.html"}
+        )
+        return {"message": "Reset link sent"}
+    except Exception as e:
+        # Don't reveal if email exists or not
+        return {"message": "If that email exists, a reset link has been sent"}
+
+@app.post("/auth/update-password")
+async def update_password(req: UpdatePasswordRequest):
+    """Update password after reset."""
+    try:
+        supabase_admin.auth.admin.update_user_by_id(
+            req.access_token,
+            {"password": req.password}
+        )
+        return {"message": "Password updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
