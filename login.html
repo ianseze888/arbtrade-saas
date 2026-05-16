@@ -225,6 +225,36 @@ input:focus{border-color:var(--gold)}
 
 <script>
 var API = 'https://arbtrade-saas-production.up.railway.app';
+
+// Handle magic link and password reset redirects
+(function() {
+  var hash = window.location.hash;
+  if (hash) {
+    var params = new URLSearchParams(hash.replace('#', ''));
+    var accessToken = params.get('access_token');
+    var type = params.get('type');
+    
+    if (accessToken && type === 'recovery') {
+      // Password reset link - redirect to reset page
+      window.location.href = 'reset-password.html' + hash;
+      return;
+    }
+    
+    if (accessToken && type === 'magiclink') {
+      // Magic link login - store token and go to dashboard
+      localStorage.setItem('arbtrade_token', accessToken);
+      window.location.href = 'dashboard.html';
+      return;
+    }
+
+    if (accessToken) {
+      // Generic token - store and redirect to dashboard
+      localStorage.setItem('arbtrade_token', accessToken);
+      window.location.href = 'dashboard.html';
+      return;
+    }
+  }
+})();
 var selectedPlan = 'starter';
 var selectedExp = '';
 var mode = 'login';
