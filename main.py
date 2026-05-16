@@ -52,6 +52,8 @@ STRIPE_PRICES = {
 # Scan intervals: Starter 12hr, Pro 8hr, Agency 6hr
 # Cost per lead: Starter $0.16, Pro $0.13, Agency $0.14
 # vs VA cost: $1.60-2.13/lead — 10x better value
+OWNER_EMAIL = "ianseze@gmail.com"
+
 TIER_LIMITS = {
     "starter": {
         "manual_scans_per_day": 1,
