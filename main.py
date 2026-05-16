@@ -223,7 +223,7 @@ def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
             f"Fields: name,asin,bsr,sellers,buy_cost,sell_price,roi,source,risk_flags,recommendation,reason,type. "
             f"type='wholesale'. recommendation=BUY/WATCH/PASS. Use string values eg roi='35%'."
         )
-        resp = ai_client.messages.create(
+        resp = anthropic_client.messages.create(
             model="claude-sonnet-4-5",
             max_tokens=1024,
             messages=[{"role":"user","content":query}]
@@ -244,6 +244,7 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+    log.info("Saving " + str(len(leads)) + " leads for user " + str(user_id)[:8])
     try:
         # Delete old leads
         supabase_admin.table("leads").delete().eq("user_id", user_id).lt("found_at", cutoff).execute()
@@ -486,7 +487,10 @@ async def manual_scan(background_tasks: BackgroundTasks, user=Depends(get_curren
             if leads:
                 await save_leads_for_user(user.id, leads, tier)
         except Exception as e:
-            log.error("Manual scan error: " + str(e))
+            log.error("Manual scan error for user " + str(user.id)[:8] + ": " + str(e))
+            import traceback
+            log.error(traceback.format_exc())
+            # Manual scan error: " + str(e))
 
     background_tasks.add_task(do_scan)
     return {"message": "Scan started — check back in 30 seconds for results"}
