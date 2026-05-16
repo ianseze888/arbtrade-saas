@@ -1272,7 +1272,7 @@ async def update_password(req: UpdatePasswordRequest):
 
 # ── Owner debug endpoint ──────────────────────────────────────────────────────
 
-@app.post("/owner/scan-now")
+@app.get("/owner/scan-now")
 async def owner_scan_now(secret: str = ""):
     """Owner-only endpoint to trigger immediate scan bypassing limits."""
     if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
