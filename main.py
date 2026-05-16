@@ -252,11 +252,8 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
             supabase_admin.table("leads").insert({
                 "user_id":        user_id,
                 "name":           lead.get("name",""),
-                "asin":           lead.get("asin",""),
+                "asin":           lead.get("asin","") or "",
                 "data":           json.dumps(lead),
-                "verification_status": lead.get("verification_status","unverified"),
-                "verified": lead.get("verified", False),
-                "confidence": lead.get("confidence","—"),
                 "recommendation": lead.get("recommendation",""),
                 "roi":            safe_roi(lead.get("roi",0)),
                 "type":           lead.get("type","wholesale"),
