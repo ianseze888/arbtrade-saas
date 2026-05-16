@@ -1273,3 +1273,38 @@ async def update_password(req: UpdatePasswordRequest):
         return {"message": "Password updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Owner debug endpoint ──────────────────────────────────────────────────────
+
+@app.post("/owner/scan-now")
+async def owner_scan_now(secret: str = ""):
+    """Owner-only endpoint to trigger immediate scan bypassing limits."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        import threading
+        def run():
+            log.info("Owner triggered manual scan...")
+            scan_agency()
+        t = threading.Thread(target=run, daemon=True)
+        t.start()
+        return {"message": "Agency scan triggered — check logs in 60-90 seconds"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/owner/logs")
+async def owner_logs(secret: str = ""):
+    """Check recent scan activity."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        # Check leads created in last hour
+        cutoff = (datetime.now() - timedelta(hours=1)).isoformat()
+        result = supabase_admin.table("leads").select("id,name,type,found_at").gte("found_at", cutoff).execute()
+        return {
+            "leads_last_hour": len(result.data or []),
+            "recent_leads": result.data[:5] if result.data else [],
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
