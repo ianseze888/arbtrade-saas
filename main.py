@@ -137,7 +137,12 @@ async def get_current_user(authorization: str = Header(None)):
 async def get_user_profile(user_id: str):
     try:
         result = supabase_admin.table("profiles").select("*").eq("id", user_id).single().execute()
-        return result.data
+        profile = result.data
+        # Owner account always gets agency tier
+        if profile and profile.get("email") == OWNER_EMAIL:
+            profile["tier"] = "agency"
+            profile["experience_level"] = "pro"
+        return profile
     except Exception:
         return None
 
