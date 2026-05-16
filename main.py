@@ -348,15 +348,11 @@ def scan_custom():
 
 def start_scheduler():
     """Start the tier-based scan scheduler."""
-    # Tier-based intervals
-    schedule.every(12).hours.do(scan_trial_and_starter)  # Starter & trial
-    schedule.every(8).hours.do(scan_pro)                  # Pro
-    schedule.every(6).hours.do(scan_agency)               # Agency
-    schedule.every(4).hours.do(scan_custom)               # Custom
-
-    # Daily jobs
-    schedule.every().day.at("08:00").do(send_daily_digests_job)
-    schedule.every().day.at("09:00").do(check_reorder_alerts_job)
+    # Tier-based scan intervals
+    schedule.every(12).hours.do(scan_trial_and_starter)
+    schedule.every(8).hours.do(scan_pro)
+    schedule.every(6).hours.do(scan_agency)
+    schedule.every(4).hours.do(scan_custom)
 
     log.info("Scheduler started — Starter:12hr | Pro:8hr | Agency:6hr | Custom:4hr")
 
@@ -1308,3 +1304,61 @@ async def owner_logs(secret: str = ""):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/owner/test-agent")
+async def test_agent(secret: str = ""):
+    """Test the agent directly and return results."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        # Test 1: Can we reach Anthropic?
+        test_resp = anthropic_client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=50,
+            messages=[{"role": "user", "content": "Say OK"}]
+        )
+        anthropic_ok = test_resp.content[0].text if test_resp.content else "no response"
+
+        # Test 2: Can we reach Supabase?
+        users = supabase_admin.table("profiles").select("id,tier").limit(1).execute()
+        supabase_ok = "yes - " + str(len(users.data or [])) + " users found"
+
+        # Test 3: Run a tiny agent scan
+        test_criteria = {
+            "wholesale": {
+                "categories": ["Health & Household"],
+                "max_bsr": 50000,
+                "max_sellers": 8,
+                "min_monthly_sales": 300,
+                "min_roi_percent": 30,
+                "enabled": True
+            },
+            "online_arbitrage": {"enabled": False}
+        }
+
+        # Get first user's ID for test
+        if users.data:
+            test_user_id = users.data[0]["id"]
+            leads = run_agent_for_user(test_user_id, test_criteria, anthropic_client)
+            leads_found = len(leads)
+            lead_names = [l.get("name","?") for l in leads[:3]]
+        else:
+            leads_found = 0
+            lead_names = []
+            test_user_id = "no users"
+
+        return {
+            "anthropic": anthropic_ok,
+            "supabase": supabase_ok,
+            "test_user_id": str(test_user_id)[:20],
+            "leads_found": leads_found,
+            "sample_leads": lead_names,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "timestamp": datetime.now().isoformat()
+        }
