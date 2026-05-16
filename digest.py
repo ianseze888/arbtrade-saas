@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
 FROM_EMAIL       = os.getenv("DIGEST_FROM_EMAIL", "ianseze@gmail.com")
 FROM_NAME        = os.getenv("DIGEST_FROM_NAME", "ARBTRADE Research Hub")
-APP_URL          = os.getenv("APP_URL", "https://monumental-hamster-dd12a2.netlify.app")
+APP_URL          = os.getenv("APP_URL", "https://getarbtrade.com")
 API_URL          = os.getenv("API_URL", "https://arbtrade-saas-production.up.railway.app")
 
 def get_roi_color(roi_str):
@@ -79,7 +79,7 @@ def build_lead_card(lead, index):
         + reason_html +
         '<table cellpadding="0" cellspacing="0"><tr>'
         '<td style="padding-right:10px">'
-        '<a href="https://monumental-hamster-dd12a2.netlify.app/onboarding.html?lead=' + name_short + '" style="background:rgba(200,169,110,0.1);color:#c8a96e;font-size:11px;padding:6px 14px;border-radius:6px;text-decoration:none;font-family:sans-serif;border:1px solid rgba(200,169,110,0.3);display:inline-block;white-space:nowrap">→ How to source</a>' + '<td style="padding-left:8px">' + '<a href="' + approve_url + '" style="background:#3ECFA0;color:#0a0a08;font-weight:700;font-size:12px;'
+        '<a href="https://getarbtrade.com/onboarding.html?lead=' + name_short + '" style="background:rgba(200,169,110,0.1);color:#c8a96e;font-size:11px;padding:6px 14px;border-radius:6px;text-decoration:none;font-family:sans-serif;border:1px solid rgba(200,169,110,0.3);display:inline-block;white-space:nowrap">→ How to source</a>' + '<td style="padding-left:8px">' + '<a href="' + approve_url + '" style="background:#3ECFA0;color:#0a0a08;font-weight:700;font-size:12px;'
         'padding:8px 20px;border-radius:6px;text-decoration:none;font-family:sans-serif;'
         'letter-spacing:.04em;display:inline-block;white-space:nowrap">&#10003; APPROVE</a>'
         '</td>'
