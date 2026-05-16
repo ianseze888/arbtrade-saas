@@ -480,8 +480,16 @@ async def manual_scan(background_tasks: BackgroundTasks, user=Depends(get_curren
     if isinstance(criteria, str): criteria = json.loads(criteria)
 
     async def do_scan():
-        leads = run_agent_for_user(user.id, criteria)
-        if leads: await save_leads_for_user(user.id, leads)
+        try:
+            tier = profile.get("tier", "starter") if profile else "starter"
+            leads = run_agent_for_user(user.id, criteria, anthropic_client)
+            leads = deduplicate_leads(leads)
+            max_leads = TIER_LIMITS.get(tier, TIER_LIMITS["starter"])["leads_per_cycle"]
+            leads = leads[:max_leads]
+            if leads:
+                await save_leads_for_user(user.id, leads, tier)
+        except Exception as e:
+            log.error("Manual scan error: " + str(e))
 
     background_tasks.add_task(do_scan)
     return {"message": "Scan started — check back in 30 seconds for results"}
