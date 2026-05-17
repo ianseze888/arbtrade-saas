@@ -19,42 +19,71 @@ log = logging.getLogger(__name__)
 # ── Expanded category pools ──────────────────────────────────────────────────
 
 WS_CATEGORIES = [
+    # Pool 1-5: Health & Wellness
     ["Health & Household", "Vitamins & Dietary Supplements"],
+    ["Health & Household", "Medical Supplies & Equipment"],
+    ["Health & Household", "Health Care"],
+    ["Health & Household", "Wellness & Relaxation"],
+    ["Health & Household", "Personal Care"],
+    # Pool 6-10: Food & Grocery
     ["Grocery & Gourmet Food", "Pantry Staples"],
-    ["Baby", "Diapering & Potty Training"],
-    ["Pet Supplies", "Dog Supplies"],
-    ["Beauty & Personal Care", "Skin Care"],
-    ["Sports & Outdoors", "Exercise & Fitness"],
-    ["Home & Kitchen", "Kitchen & Dining"],
-    ["Office Products", "Office & School Supplies"],
-    ["Health & Household", "Medical Supplies"],
     ["Grocery & Gourmet Food", "Beverages"],
-    ["Pet Supplies", "Cat Supplies"],
+    ["Grocery & Gourmet Food", "Snack Foods"],
+    ["Grocery & Gourmet Food", "Organic & Natural Foods"],
+    ["Grocery & Gourmet Food", "Breakfast Foods"],
+    # Pool 11-15: Beauty & Personal Care
+    ["Beauty & Personal Care", "Skin Care"],
     ["Beauty & Personal Care", "Hair Care"],
-    ["Sports & Outdoors", "Outdoor Recreation"],
-    ["Home & Kitchen", "Cleaning Supplies"],
+    ["Beauty & Personal Care", "Oral Care"],
+    ["Beauty & Personal Care", "Bath & Body"],
+    ["Beauty & Personal Care", "Tools & Accessories"],
+    # Pool 16-20: Baby & Pet
+    ["Baby", "Diapering & Potty Training"],
     ["Baby", "Feeding"],
+    ["Baby", "Baby Care"],
+    ["Pet Supplies", "Dog Supplies"],
+    ["Pet Supplies", "Cat Supplies"],
+    # Pool 21-25: Home & Kitchen
+    ["Home & Kitchen", "Kitchen & Dining"],
+    ["Home & Kitchen", "Cleaning Supplies"],
+    ["Home & Kitchen", "Bedding"],
+    ["Home & Kitchen", "Storage & Organization"],
+    ["Home & Kitchen", "Bath"],
+    # Pool 26-30: Sports & Office
+    ["Sports & Outdoors", "Exercise & Fitness"],
+    ["Sports & Outdoors", "Outdoor Recreation"],
+    ["Sports & Outdoors", "Sports Nutrition"],
+    ["Office Products", "Office & School Supplies"],
+    ["Office Products", "Technology Accessories"],
 ]
 
 OA_SOURCES_POOL = [
-    # Tier 1 — highest margin
-    ["Walgreens clearance", "CVS weekly sales", "iHerb flash sales"],
-    ["Vitacost promotions", "Chewy clearance", "brand liquidation portals"],
-    ["Rite Aid clearance", "CVS app deals", "Walgreens app coupons"],
-    ["iHerb subscribe and save gaps", "Chewy Autoship deals", "Vitacost 25% off sales"],
-    # Tier 2 — good deals
-    ["Target Circle clearance", "Walmart Rollback", "Staples rebates"],
-    ["Kohl's clearance", "Home Depot B2B", "Costco.com overstock"],
-    ["Target app clearance", "Walmart.com clearance", "BJs Wholesale"],
-    ["Office Depot rebates", "Best Buy open box", "Bed Bath Beyond liquidation"],
-    # Tier 3 — supplementary
-    ["Amazon Warehouse deals", "Overstock.com", "Wayfair clearance"],
-    ["Groupon Goods", "Zulily flash sales", "Woot deals"],
+    # Tier 1 — Drug stores (highest margin OA)
+    ["Walgreens clearance section", "CVS weekly sale items", "Rite Aid clearance"],
+    ["Walgreens app digital coupons", "CVS ExtraCare deals", "Rite Aid wellness+ deals"],
+    ["iHerb flash sales", "iHerb Subscribe & Save gaps", "iHerb promo codes"],
+    ["Vitacost 25% off promotions", "Vitacost clearance", "Vitacost bundle deals"],
+    # Tier 2 — Pet & Specialty
+    ["Chewy clearance", "Chewy Autoship price gaps", "PetSmart clearance"],
+    ["Petco sale items", "Chewy flash deals", "1800PetMeds promotions"],
+    # Tier 3 — Mass Market
+    ["Target Circle clearance", "Target app deals", "Target in-store clearance"],
+    ["Walmart Rollback items", "Walmart clearance", "Walmart.com markdowns"],
+    ["Costco.com overstock", "BJs Wholesale deals", "Sams Club clearance"],
+    # Tier 4 — Liquidation & Specialty
+    ["brand liquidation portals", "Direct brand overstock sales", "manufacturer closeouts"],
+    ["Groupon Goods deals", "Woot daily deals", "Zulily flash sales"],
+    ["Home Depot clearance", "Lowes clearance", "Office Depot rebates"],
+    ["Kohl's clearance", "Bed Bath Beyond liquidation", "Tuesday Morning deals"],
+    ["6pm.com clearance", "Overstock.com deals", "Jet.com promotions"],
+    # Tier 5 — Online specialty
+    ["Thrive Market deals", "Grove Collaborative promotions", "Natural Grocers online"],
 ]
 
 WS_DISTRIBUTORS = [
+    # Major distributors
     "Faire wholesale marketplace",
-    "RangeMe brand platform", 
+    "RangeMe brand platform",
     "Wholesale Central directory",
     "UNFI natural foods distributor",
     "KeHE distributors",
@@ -62,11 +91,25 @@ WS_DISTRIBUTORS = [
     "McLane Company",
     "Nash Finch wholesale",
     "Associated Wholesale Grocers",
+    "C&S Wholesale Grocers",
+    "SpartanNash wholesale",
+    # Direct brand programs
     "Direct brand wholesale programs",
+    "Brand ambassador wholesale portals",
+    "Manufacturer direct programs",
+    # Trade shows & specialty
     "Expo West trade show brands",
     "ASD Market Week suppliers",
     "Specialty Food Association members",
     "Natural Products Expo brands",
+    "NY Now trade show",
+    "National Hardware Show brands",
+    # Online wholesale platforms
+    "Tundra wholesale marketplace",
+    "Abound wholesale platform",
+    "Creoate wholesale marketplace",
+    "SeeBiz wholesale directory",
+    "Global Sources wholesale",
 ]
 
 def get_user_rotation(user_id: str, pool_size: int) -> int:

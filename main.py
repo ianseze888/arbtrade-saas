@@ -435,10 +435,28 @@ async def update_criteria(req: CriteriaUpdate, user=Depends(get_current_user)):
 @app.get("/leads")
 async def get_leads(user=Depends(get_current_user), filter: str = "all"):
     tier = await get_user_tier(user.id)
-    max_leads = TIER_LIMITS.get(tier, TIER_LIMITS["trial"])["max_leads"]
-    cutoff = (datetime.now() - timedelta(hours=48)).isoformat()
+    # Use tier-based history window NOT leads_per_cycle
+    # Trial gets SAME history as their selected plan - no reduced experience
+    history_map = {
+        "trial":   7,   # Same as starter - trial is just no-charge period
+        "starter": 7,
+        "pro":     30,
+        "agency":  90,
+        "custom":  90,
+    }
+    # Display limit — how many to show in dashboard
+    display_limit_map = {
+        "trial":   50,
+        "starter": 200,
+        "pro":     500,
+        "agency":  1000,
+        "custom":  2000,
+    }
+    history_days = history_map.get(tier, 7)
+    display_limit = display_limit_map.get(tier, 200)
+    cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     try:
-        query = supabase_admin.table("leads").select("*").eq("user_id", user.id).gte("found_at", cutoff).order("roi", desc=True).limit(max_leads)
+        query = supabase_admin.table("leads").select("*").eq("user_id", user.id).gte("found_at", cutoff).order("roi", desc=True).limit(display_limit)
         if filter == "wholesale": query = query.eq("type","wholesale")
         elif filter == "oa": query = query.eq("type","oa")
         elif filter == "BUY": query = query.eq("recommendation","BUY")
@@ -559,6 +577,10 @@ async def get_usage(user=Depends(get_current_user)):
     limits = TIER_LIMITS.get(tier, TIER_LIMITS["trial"])
     today = datetime.now().date().isoformat()
     try:
+        # Clean old usage records (auto daily reset)
+        supabase_admin.table("scan_usage").delete().eq("user_id", user.id).lt("date", today).execute()
+    except: pass
+    try:
         result = supabase_admin.table("scan_usage").select("count").eq("user_id", user.id).eq("date", today).execute()
         scans_today = result.data[0]["count"] if result.data else 0
     except: scans_today = 0
@@ -567,7 +589,8 @@ async def get_usage(user=Depends(get_current_user)):
         "scans_today": scans_today,
         "scans_limit": limits["manual_scans_per_day"],
         "max_leads": limits["max_leads"],
-        "categories_limit": limits["categories"]
+        "categories_limit": limits["categories"],
+        "date": today
     }
 
 if __name__ == "__main__":
