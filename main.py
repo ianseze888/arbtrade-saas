@@ -520,6 +520,10 @@ async def create_checkout(req: CheckoutRequest, user=Depends(get_current_user)):
             payment_method_types=["card"],
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
+            subscription_data={
+                "trial_period_days": 7,
+                "metadata": {"tier": req.tier, "user_id": user.id}
+            },
             success_url=req.success_url + "?session_id={CHECKOUT_SESSION_ID}",
             cancel_url=req.cancel_url,
             metadata={"user_id": user.id, "tier": req.tier},

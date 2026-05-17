@@ -299,9 +299,13 @@ def run_agent_for_user(user_id: str, criteria: dict, ai_client) -> list:
     return leads
 
 def get_lead_history_days(tier: str) -> int:
-    """Lead history window per tier."""
+    """
+    Lead history window per tier.
+    Trial gets same as starter — trial is just no-charge period,
+    NOT a reduced feature set. Full plan experience from day 1.
+    """
     return {
-        "trial":   3,    # Trial gets 3 days — enough to evaluate
+        "trial":   7,    # Same as starter - no reduced experience during trial
         "starter": 7,    # 7-day rolling window
         "pro":     30,   # 30-day trend analysis
         "agency":  90,   # Full quarter of data
