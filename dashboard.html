@@ -441,7 +441,7 @@ function renderCard(l) {
       '<div class="tags">'+typeBadge+risks+'</div>'
   +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
   +((!userProfile || userProfile.experience_level !== 'pro') ? '<a href="onboarding.html?lead='+encodeURIComponent(l.name||'')+'&path='+(l.type==='oa'?'oa':'ws')+'" style="font-size:11px;font-family:var(--mono);color:var(--gold);text-decoration:none;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:3px 10px;border-radius:20px">→ How to source this</a>' : '')
-  +'<a href="'+(l.asin && l.asin.length===10 && l.asin.startsWith(\'B\')?'https://www.amazon.com/dp/'+l.asin:'https://www.amazon.com/s?k='+encodeURIComponent(l.name||''))+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>'
+  +(l.asin && l.asin.length===10 && l.asin[0]==='B' ? '<a href="https://www.amazon.com/dp/'+l.asin+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>' : '<a href="https://www.amazon.com/s?k='+encodeURIComponent(l.name||'')+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>')
   +'<button onclick="openApproveModal('+JSON.stringify(l)+')" style="font-size:11px;font-family:var(--mono);color:var(--green);background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">✓ Approve</button>'
   +'</div>' +
     '</div>' +
@@ -639,6 +639,7 @@ if(_guideLink) _guideLink.style.display = _exp === 'new' ? 'flex' : 'none';
 
 loadProfile();
 loadLeads();
+loadReorderAlerts();
 setInterval(loadLeads, 300000);
 </script>
 

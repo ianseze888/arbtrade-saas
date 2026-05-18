@@ -368,6 +368,7 @@ async function handleLogin() {
     if(!resp.ok) throw new Error(data.detail||'Login failed');
     localStorage.setItem('arbtrade_token', data.access_token);
     localStorage.setItem('arbtrade_user', JSON.stringify(data.user));
+    if(data.session?.refresh_token) localStorage.setItem('arbtrade_refresh_token', data.session.refresh_token);
     showMsg('login-msg','Success! Redirecting...','success');
     setTimeout(function(){window.location.href='dashboard.html'},800);
   } catch(e) {
