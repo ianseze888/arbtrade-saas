@@ -445,7 +445,7 @@ async function loadProfile() {
     document.getElementById('tier-badge').textContent = tier;
     document.getElementById('tier-badge').className = 'tier-badge tier-'+tier;
     document.getElementById('m-plan').textContent = tier.charAt(0).toUpperCase()+tier.slice(1);
-    document.getElementById('m-limits').textContent = (data.limits?.max_leads||10)+' leads max';
+    document.getElementById('m-limits').textContent = (data.history_days||7)+' day history';
     document.getElementById('billing-tier').textContent = tier;
   } catch(e) { console.error('Profile error:', e); }
 }

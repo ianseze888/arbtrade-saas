@@ -473,7 +473,8 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
             "best_roi": best_roi,
             "last_run": datetime.now().isoformat(),
             "tier": tier,
-            "max_leads": max_leads
+            "history_days": history_days,
+            "display_limit": display_limit
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
