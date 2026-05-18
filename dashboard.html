@@ -311,25 +311,57 @@ button.btn-gold:hover{background:var(--gold2)}
       <div style="border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
         <div style="font-size:13px;font-weight:600;margin-bottom:4px">Starter</div>
         <div style="font-size:20px;font-weight:700;color:var(--gold);margin-bottom:8px">$47<span style="font-size:12px">/mo</span></div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">4hr scans · 20 leads · 7 days history</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">12hr scans · 5 leads/cycle · ~300/month · 7 day history</div>
         <button class="btn" onclick="checkout('starter')" style="width:100%;font-size:11px">Select</button>
       </div>
       <div style="border:1px solid var(--oa-border);border-radius:8px;padding:14px;text-align:center;background:var(--oa-bg)">
         <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--oa)">Pro</div>
         <div style="font-size:20px;font-weight:700;color:var(--oa);margin-bottom:8px">$97<span style="font-size:12px">/mo</span></div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">2hr scans · 50 leads · 30 days history</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">8hr scans · 8 leads/cycle · ~720/month · 30 day history</div>
         <button class="btn" onclick="checkout('pro')" style="width:100%;font-size:11px;border-color:var(--oa-border);color:var(--oa)">Select</button>
       </div>
       <div style="border:1px solid var(--ws-border);border-radius:8px;padding:14px;text-align:center;background:var(--ws-bg)">
         <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:var(--ws)">Agency</div>
         <div style="font-size:20px;font-weight:700;color:var(--ws);margin-bottom:8px">$197<span style="font-size:12px">/mo</span></div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">Hourly scans · 100 leads · 90 days history</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:12px">6hr scans · 12 leads/cycle · ~1,440/month · 90 day history</div>
         <button class="btn" onclick="checkout('agency')" style="width:100%;font-size:11px;border-color:var(--ws-border);color:var(--ws)">Select</button>
       </div>
     </div>
   </div>
 </div>
 
+
+<div class="page" id="page-support">
+  <div class="page-title">Support</div>
+  <div class="page-sub" style="margin-bottom:20px">AI support agent responds in under 60 seconds</div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title" style="margin-bottom:12px">Submit a ticket</div>
+    <div style="margin-bottom:10px">
+      <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase">Category</label>
+      <select id="ticket-category" style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+        <option value="general">General question</option>
+        <option value="no_leads">No leads showing</option>
+        <option value="billing">Billing &amp; subscription</option>
+        <option value="sourcing">How to source products</option>
+        <option value="technical">Technical issue</option>
+        <option value="upgrade">Upgrade my plan</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase">Message</label>
+      <textarea id="ticket-message" style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--mono);outline:none;height:100px;resize:vertical;line-height:1.6" placeholder="Describe your issue..."></textarea>
+    </div>
+    <button onclick="submitTicket()" id="ticket-btn" style="width:100%;background:var(--gold);border:none;border-radius:8px;color:#000;font-family:var(--sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer">Submit ticket</button>
+    <div id="ticket-response" style="display:none;margin-top:14px;background:var(--bg3);border:1px solid rgba(62,207,160,0.2);border-radius:8px;padding:14px 16px">
+      <div style="font-size:11px;font-family:var(--mono);color:var(--green);margin-bottom:8px">&#10003; AI Support Response</div>
+      <div id="ticket-response-text" style="font-size:13px;color:var(--text);line-height:1.8"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px">Ticket history</div>
+    <div id="ticket-history" style="font-size:12px;font-family:var(--mono);color:var(--muted)">No tickets yet.</div>
+  </div>
+</div>
 </main>
 </div>
 
@@ -362,7 +394,7 @@ function nav(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
   document.getElementById('page-'+id).classList.add('active');
-  var map={dashboard:0,results:1,scan:2,criteria:3,billing:4};
+  var map={dashboard:0,results:1,scan:2,criteria:3,billing:4,support:5};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='scan') loadUsage();
   if(id==='criteria') loadCriteria();
@@ -421,7 +453,7 @@ function renderCard(l) {
 
 function renderLeads(leads, containerId, max) {
   var el = document.getElementById(containerId);
-  if(!leads||leads.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">◈</div>No leads yet. The agent scans automatically every 4 hours.</div>';return}
+  if(!leads||leads.length===0){el.innerHTML='<div class="empty"><div class="empty-icon">◈</div>No leads yet. The agent scans automatically on your plan schedule.</div>';return}
   var shown=max?leads.slice(0,max):leads;
   el.innerHTML='<div class="leads-grid">'+shown.map(renderCard).join('')+'</div>';
 }
