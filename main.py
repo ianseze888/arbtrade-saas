@@ -1420,3 +1420,113 @@ async def raw_leads(secret: str = ""):
         return {"total_in_db": len(leads), "sample": parsed}
     except Exception as e:
         return {"error": str(e)}
+
+# ── Support Ticket System ─────────────────────────────────────────────────────
+
+from support_agent import process_ticket
+
+class TicketRequest(BaseModel):
+    category: str = "general"
+    subject: str = ""
+    message: str
+
+@app.post("/support/ticket")
+async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
+    """Submit a support ticket — AI responds within 60 seconds."""
+    try:
+        profile = await get_user_profile(user.id)
+        tier = profile.get("tier", "trial") if profile else "trial"
+
+        # Get user's lead count for context
+        lead_result = supabase_admin.table("leads").select("id").eq("user_id", user.id).execute()
+        lead_count = len(lead_result.data or [])
+
+        # Get last scan time
+        scan_result = supabase_admin.table("scan_usage").select("date,count").eq("user_id", user.id).order("date", desc=True).limit(1).execute()
+        last_scan = scan_result.data[0]["date"] if scan_result.data else "No scans yet"
+
+        # Save ticket to database
+        ticket_data = {
+            "user_id":    user.id,
+            "email":      user.email,
+            "category":   req.category,
+            "subject":    req.subject,
+            "message":    req.message,
+            "status":     "open",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+        }
+        ticket_result = supabase_admin.table("support_tickets").insert(ticket_data).execute()
+        ticket = ticket_result.data[0] if ticket_result.data else ticket_data
+        ticket["email"] = user.email
+
+        # Build user context
+        user_data = {
+            "email":      user.email,
+            "tier":       tier,
+            "lead_count": lead_count,
+            "last_scan":  last_scan,
+        }
+
+        # Process with AI agent
+        sendgrid_key = os.getenv("SENDGRID_API_KEY","")
+        owner_email  = os.getenv("OWNER_EMAIL", "ianseze@gmail.com")
+
+        result = process_ticket(ticket, user_data, anthropic_client, sendgrid_key, owner_email)
+
+        # Update ticket with AI response
+        if ticket.get("id"):
+            supabase_admin.table("support_tickets").update({
+                "ai_response":     result["response"],
+                "ai_responded_at": datetime.now().isoformat(),
+                "status":          "resolved" if result["resolved"] else "escalated",
+                "escalated":       result["escalate"],
+                "updated_at":      datetime.now().isoformat(),
+            }).eq("id", ticket["id"]).execute()
+
+        return {
+            "ticket_id": str(ticket.get("id",""))[:8],
+            "response":  result["response"],
+            "resolved":  result["resolved"],
+            "escalated": result["escalate"],
+            "message":   "Support response sent to your email"
+        }
+
+    except Exception as e:
+        log.error("Ticket error: " + str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/support/tickets")
+async def get_tickets(user=Depends(get_current_user)):
+    """Get user's support ticket history."""
+    try:
+        result = supabase_admin.table("support_tickets").select("*").eq("user_id", user.id).order("created_at", desc=True).limit(10).execute()
+        return {"tickets": result.data or []}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ── Platform Health Monitor ───────────────────────────────────────────────────
+
+from health_monitor import run_health_check
+
+@app.get("/health/full")
+async def full_health_check(secret: str = ""):
+    """Run full platform health check."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    sendgrid_key = os.getenv("SENDGRID_API_KEY", "")
+    owner_email  = os.getenv("OWNER_EMAIL", "ianseze@gmail.com")
+    result = run_health_check(supabase_admin, anthropic_client, sendgrid_key, owner_email)
+    return result
+
+def health_monitor_job():
+    """Runs every 15 minutes — checks platform health."""
+    try:
+        sendgrid_key = os.getenv("SENDGRID_API_KEY", "")
+        owner_email  = os.getenv("OWNER_EMAIL", "ianseze@gmail.com")
+        run_health_check(supabase_admin, anthropic_client, sendgrid_key, owner_email)
+    except Exception as e:
+        log.error("Health monitor error: " + str(e))
+
+# Schedule health check every 15 minutes
+schedule.every(15).minutes.do(health_monitor_job)
