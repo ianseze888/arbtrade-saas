@@ -343,7 +343,18 @@ var userProfile = null;
 if (!token) window.location.href = 'login.html';
 
 function getHeaders() {
-  return {'Content-Type':'application/json','Authorization':'Bearer '+token};
+  return {'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('arbtrade_token')};
+}
+
+// Auto redirect to login on 401
+async function fetchWithAuth(url, options) {
+  var resp = await fetch(url, {...options, headers: getHeaders()});
+  if(resp.status === 401) {
+    localStorage.clear();
+    window.location.href = 'login.html';
+    return null;
+  }
+  return resp;
 }
 
 function nav(id) {

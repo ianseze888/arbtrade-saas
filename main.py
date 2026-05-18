@@ -131,10 +131,16 @@ async def get_current_user(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization.split(" ")[1]
     try:
-        user = supabase.auth.get_user(token)
+        # Try with admin client first (more reliable)
+        user = supabase_admin.auth.get_user(token)
         return user.user
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        try:
+            # Fallback to anon client
+            user = supabase.auth.get_user(token)
+            return user.user
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 async def get_user_profile(user_id: str):
     try:
