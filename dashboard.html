@@ -394,7 +394,7 @@ function nav(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
   document.getElementById('page-'+id).classList.add('active');
-  var map={dashboard:0,results:1,scan:2,criteria:3,billing:4,support:5};
+  var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='scan') loadUsage();
   if(id==='criteria') loadCriteria();
