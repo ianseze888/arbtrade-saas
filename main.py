@@ -328,6 +328,24 @@ def scan_users_for_tier(tier: str):
                     loop.close()
                 scanned += 1
                 log.info(tier + " scan: user " + user_id[:8] + " got " + str(len(leads)) + " leads")
+                # Log scan to scan_usage so support agent knows scans ran
+                try:
+                    today = datetime.now().date().isoformat()
+                    existing = supabase_admin.table("scan_usage").select("*").eq("user_id", user_id).eq("date", today).execute()
+                    if existing.data:
+                        supabase_admin.table("scan_usage").update({
+                            "count": existing.data[0]["count"] + 1,
+                            "last_scan": datetime.now().isoformat()
+                        }).eq("user_id", user_id).eq("date", today).execute()
+                    else:
+                        supabase_admin.table("scan_usage").insert({
+                            "user_id": user_id,
+                            "date": today,
+                            "count": 1,
+                            "last_scan": datetime.now().isoformat()
+                        }).execute()
+                except Exception as log_err:
+                    log.error("Scan usage log error: " + str(log_err))
             except Exception as e:
                 log.error("Scan error for user " + user_id[:8] + ": " + str(e))
 
@@ -1441,9 +1459,15 @@ async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
         lead_result = supabase_admin.table("leads").select("id").eq("user_id", user.id).execute()
         lead_count = len(lead_result.data or [])
 
-        # Get last scan time
-        scan_result = supabase_admin.table("scan_usage").select("date,count").eq("user_id", user.id).order("date", desc=True).limit(1).execute()
-        last_scan = scan_result.data[0]["date"] if scan_result.data else "No scans yet"
+        # Get last scan time from leads table (more accurate than scan_usage)
+        last_lead = supabase_admin.table("leads").select("found_at").eq("user_id", str(user.id)).order("found_at", desc=True).limit(1).execute()
+        if last_lead.data:
+            from datetime import timezone
+            last_scan_dt = last_lead.data[0]["found_at"][:16].replace("T", " ")
+            last_scan = last_scan_dt + " UTC"
+        else:
+            scan_result = supabase_admin.table("scan_usage").select("date,count").eq("user_id", str(user.id)).order("date", desc=True).limit(1).execute()
+            last_scan = scan_result.data[0]["date"] if scan_result.data else "No scans recorded yet"
 
         # Get email safely
         user_email = getattr(user, 'email', '') or profile.get("email","") if profile else ""

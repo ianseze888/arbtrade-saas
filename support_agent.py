@@ -46,14 +46,19 @@ def build_support_prompt(ticket: dict, user_data: dict) -> str:
         "agency":  "$197/month, 12 leads/cycle, every 6 hours, 90-day history",
     }.get(tier, "trial plan")
 
+    next_scan_hours = {'trial':12,'starter':12,'pro':8,'agency':6,'custom':4}.get(tier, 12)
+    scan_status = 'Scans are running — last lead found at ' + str(last_scan) if last_scan and 'No scan' not in str(last_scan) else 'No scans recorded yet'
+
     return (
         "You are ARBTRADE's AI support agent. You help Amazon FBA sellers using the ARBTRADE platform.\n\n"
-        "ARBTRADE is an AI-powered product research platform that automatically finds wholesale and OA leads for Amazon sellers.\n\n"
+        "ARBTRADE automatically finds wholesale and OA leads for Amazon sellers on a set schedule.\n\n"
         "USER ACCOUNT INFO:\n"
         "Email: " + email + "\n"
         "Plan: " + tier + " (" + tier_info + ")\n"
-        "Leads in database: " + str(lead_count) + "\n"
-        "Last scan: " + str(last_scan) + "\n\n"
+        "Leads in dashboard: " + str(lead_count) + "\n"
+        "Scan status: " + scan_status + "\n"
+        "Scan frequency: every " + str(next_scan_hours) + " hours automatically\n"
+        "CRITICAL: If scan status shows a timestamp, scans ARE working. Never say no scans occurred.\n\n"
         "SUPPORT TICKET:\n"
         "Category: " + category + "\n"
         "Message: " + message + "\n\n"
