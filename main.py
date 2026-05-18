@@ -1445,20 +1445,27 @@ async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
         scan_result = supabase_admin.table("scan_usage").select("date,count").eq("user_id", user.id).order("date", desc=True).limit(1).execute()
         last_scan = scan_result.data[0]["date"] if scan_result.data else "No scans yet"
 
-        # Save ticket to database
+        # Get email safely
+        user_email = getattr(user, 'email', '') or profile.get("email","") if profile else ""
+
+        # Save ticket to database - wrapped in try/except so failure doesn't block response
         ticket_data = {
-            "user_id":    user.id,
-            "email":      user.email,
+            "user_id":    str(user.id),
+            "email":      user_email,
             "category":   req.category,
-            "subject":    req.subject,
+            "subject":    req.subject or req.category,
             "message":    req.message,
             "status":     "open",
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
         }
-        ticket_result = supabase_admin.table("support_tickets").insert(ticket_data).execute()
-        ticket = ticket_result.data[0] if ticket_result.data else ticket_data
-        ticket["email"] = user.email
+        try:
+            ticket_result = supabase_admin.table("support_tickets").insert(ticket_data).execute()
+            ticket = ticket_result.data[0] if ticket_result.data else ticket_data
+        except Exception as db_err:
+            log.error("Ticket DB save error: " + str(db_err))
+            ticket = ticket_data
+        ticket["email"] = user_email
 
         # Build user context
         user_data = {
@@ -1500,10 +1507,11 @@ async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
 async def get_tickets(user=Depends(get_current_user)):
     """Get user's support ticket history."""
     try:
-        result = supabase_admin.table("support_tickets").select("*").eq("user_id", user.id).order("created_at", desc=True).limit(10).execute()
+        result = supabase_admin.table("support_tickets").select("*").eq("user_id", str(user.id)).order("created_at", desc=True).limit(10).execute()
         return {"tickets": result.data or []}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        log.error("Get tickets error: " + str(e))
+        return {"tickets": []}
 
 # ── Platform Health Monitor ───────────────────────────────────────────────────
 
