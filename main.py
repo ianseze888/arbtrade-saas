@@ -422,7 +422,17 @@ async def signup(req: SignupRequest):
 async def login(req: LoginRequest):
     try:
         result = supabase.auth.sign_in_with_password({"email": req.email, "password": req.password})
-        return {"user": result.user, "session": result.session, "access_token": result.session.access_token}
+        return {
+            "user":          result.user,
+            "access_token":  result.session.access_token,
+            "refresh_token": result.session.refresh_token,
+            "expires_in":    result.session.expires_in,
+            "session": {
+                "access_token":  result.session.access_token,
+                "refresh_token": result.session.refresh_token,
+                "expires_in":    result.session.expires_in,
+            }
+        }
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
