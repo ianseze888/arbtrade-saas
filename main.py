@@ -250,10 +250,12 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
-    log.info("Saving " + str(len(leads)) + " leads for user " + str(user_id)[:8])
+    log.info("Saving " + str(len(leads)) + " leads for user " + str(user_id)[:8] + " tier=" + tier + " history=" + str(history_days) + "days")
     try:
-        # Delete old leads
-        supabase_admin.table("leads").delete().eq("user_id", user_id).lt("found_at", cutoff).execute()
+        # Only delete leads older than history window - NEVER delete recent leads
+        old_cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+        deleted = supabase_admin.table("leads").delete().eq("user_id", user_id).lt("found_at", old_cutoff).execute()
+        log.info("Cleaned old leads for user " + str(user_id)[:8])
         # Insert new leads
         for lead in leads:
             supabase_admin.table("leads").insert({
@@ -1403,16 +1405,18 @@ async def raw_leads(secret: str = ""):
     if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
         raise HTTPException(status_code=403, detail="Forbidden")
     try:
-        result = supabase_admin.table("leads").select("id,name,type,recommendation,roi,found_at,data").order("found_at", desc=True).limit(5).execute()
+        result = supabase_admin.table("leads").select("id,name,type,recommendation,roi,found_at,user_id").order("found_at", desc=True).limit(20).execute()
         leads = result.data or []
         # Try parsing data column
         parsed = []
         for l in leads:
-            try:
-                d = json.loads(l.get("data","{}"))
-                parsed.append({"name": l.get("name"), "type": l.get("type"), "rec": l.get("recommendation"), "data_valid": bool(d), "data_keys": list(d.keys())[:5]})
-            except Exception as e:
-                parsed.append({"name": l.get("name"), "error": str(e)})
+            parsed.append({
+                "name": l.get("name"), 
+                "type": l.get("type"), 
+                "rec": l.get("recommendation"),
+                "found_at": l.get("found_at","")[:16],
+                "user_id": str(l.get("user_id",""))[:8]
+            })
         return {"total_in_db": len(leads), "sample": parsed}
     except Exception as e:
         return {"error": str(e)}
