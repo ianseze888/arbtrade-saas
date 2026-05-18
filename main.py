@@ -1396,3 +1396,23 @@ async def test_agent(secret: str = ""):
             "traceback": traceback.format_exc(),
             "timestamp": datetime.now().isoformat()
         }
+
+@app.get("/owner/raw-leads")
+async def raw_leads(secret: str = ""):
+    """Get raw leads directly from database for debugging."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        result = supabase_admin.table("leads").select("id,name,type,recommendation,roi,found_at,data").order("found_at", desc=True).limit(5).execute()
+        leads = result.data or []
+        # Try parsing data column
+        parsed = []
+        for l in leads:
+            try:
+                d = json.loads(l.get("data","{}"))
+                parsed.append({"name": l.get("name"), "type": l.get("type"), "rec": l.get("recommendation"), "data_valid": bool(d), "data_keys": list(d.keys())[:5]})
+            except Exception as e:
+                parsed.append({"name": l.get("name"), "error": str(e)})
+        return {"total_in_db": len(leads), "sample": parsed}
+    except Exception as e:
+        return {"error": str(e)}
