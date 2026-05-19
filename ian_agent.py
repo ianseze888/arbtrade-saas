@@ -12,6 +12,7 @@ import logging
 import json
 import time
 from datetime import datetime
+import random
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ def build_ian_ws_prompt(user_id: str, criteria: dict) -> str:
 
     return (
         "You are IAN, an expert Amazon FBA wholesale researcher with live web search access.\n\n"
-        "MISSION: Find 5 REAL wholesale product opportunities using web search RIGHT NOW.\n\n"
+        "MISSION: Find 6 real wholesale product opportunities. Use web search to verify prices and ASINs.\n\n"
         "SEARCH STRATEGY:\n"
         "1. Search Amazon for products in: " + cats_str + "\n"
         "2. Find products with BSR under #" + str(max_bsr) + " and under " + str(max_sellers) + " FBA sellers\n"
@@ -95,8 +96,8 @@ def build_ian_ws_prompt(user_id: str, criteria: dict) -> str:
         "- Amazon must NOT be primary buy box holder\n"
         "- Product must be replenishable (not one-time)\n"
         "- Wholesale MOQ under $500 preferred\n\n"
-        "CRITICAL: Use web search to verify REAL prices, REAL ASINs, REAL seller counts.\n"
-        "Never estimate — search and verify.\n\n"
+        "Use web search to verify prices and ASINs where possible.\n"
+        "If web search is unavailable, use your best knowledge to find real opportunities.\n\n"
         "Return ONLY a JSON array. Start with [ end with ].\n"
         "Required fields: name, asin, bsr, sellers, buy_cost, sell_price, roi, source, "
         "risk_flags, recommendation, reason, type, verified_url\n"
@@ -118,7 +119,7 @@ def build_ian_oa_prompt(user_id: str, criteria: dict) -> str:
 
     return (
         "You are IAN, an expert Amazon FBA online arbitrage researcher with live web search.\n\n"
-        "MISSION: Find 5 REAL OA deals using web search RIGHT NOW.\n\n"
+        "MISSION: Find 6 real OA deals. Use web search to verify current prices where possible.\n\n"
         "SEARCH STRATEGY:\n"
         "1. Search these sources for current sales/clearance: " + sources_str + "\n"
         "2. For each deal found, search Amazon to verify the product exists and get real ASIN\n"
@@ -144,66 +145,72 @@ def build_ian_oa_prompt(user_id: str, criteria: dict) -> str:
 def run_ian(user_id: str, criteria: dict, ai_client) -> list:
     """Run Ian's research scan — returns real verified leads."""
     leads = []
-    now = datetime.now().isoformat()
+    now   = datetime.now().isoformat()
+
+    def extract_text(content):
+        """Extract text from API response including web search blocks."""
+        text = ""
+        for block in content:
+            if hasattr(block, "text") and block.text:
+                text += block.text
+        return text.strip()
+
+    def parse_leads(raw, lead_type):
+        """Parse JSON array from raw text response."""
+        try:
+            s = raw.find("[")
+            e = raw.rfind("]") + 1
+            if s > -1 and e > 0:
+                items = json.loads(raw[s:e])
+                for item in items:
+                    item["found_at"] = now
+                    item["type"]     = lead_type
+                    item["agent"]    = "ian"
+                    item["verified"] = True
+                return items
+        except Exception as je:
+            log.error("Ian JSON parse error: " + str(je))
+        return []
 
     # Ian's wholesale scan
-    try:
-        ws_prompt = build_ian_ws_prompt(user_id, criteria)
-        ws_enabled = criteria.get("wholesale", {}).get("enabled", True)
-
-        if ws_enabled:
+    ws_enabled = criteria.get("wholesale", {}).get("enabled", True)
+    if ws_enabled:
+        try:
+            ws_prompt = build_ian_ws_prompt(user_id, criteria)
             log.info("Ian: Running wholesale scan for user " + str(user_id)[:8])
+            time.sleep(random.uniform(1, 3))
             resp = ai_client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=2000,
                 tools=[{"type": "web_search_20250305", "name": "web_search"}],
                 messages=[{"role": "user", "content": ws_prompt}]
             )
-            raw = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
-
-            # Extract JSON
-            s = raw.find("[")
-            e = raw.rfind("]") + 1
-            if s > -1 and e > 0:
-                ws_leads = json.loads(raw[s:e])
-                for lead in ws_leads:
-                    lead["found_at"] = now
-                    lead["type"]     = "wholesale"
-                    lead["agent"]    = "ian"
-                    lead["verified"] = True
-                leads.extend(ws_leads)
-                log.info("Ian: Found " + str(len(ws_leads)) + " wholesale leads")
-    except Exception as e:
-        log.error("Ian wholesale error: " + str(e))
+            raw     = extract_text(resp.content)
+            ws_leads = parse_leads(raw, "wholesale")
+            leads.extend(ws_leads)
+            log.info("Ian: Found " + str(len(ws_leads)) + " wholesale leads")
+        except Exception as e:
+            log.error("Ian wholesale error: " + str(e))
 
     # Ian's OA scan
-    try:
-        oa_prompt = build_ian_oa_prompt(user_id, criteria)
-        oa_enabled = criteria.get("online_arbitrage", {}).get("enabled", True)
-
-        if oa_enabled:
+    oa_enabled = criteria.get("online_arbitrage", {}).get("enabled", True)
+    if oa_enabled:
+        try:
+            oa_prompt = build_ian_oa_prompt(user_id, criteria)
             log.info("Ian: Running OA scan for user " + str(user_id)[:8])
+            time.sleep(random.uniform(1, 3))
             resp2 = ai_client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=2000,
                 tools=[{"type": "web_search_20250305", "name": "web_search"}],
                 messages=[{"role": "user", "content": oa_prompt}]
             )
-            raw2 = "".join(b.text for b in resp2.content if hasattr(b, "text")).strip()
-
-            s = raw2.find("[")
-            e = raw2.rfind("]") + 1
-            if s > -1 and e > 0:
-                oa_leads = json.loads(raw2[s:e])
-                for lead in oa_leads:
-                    lead["found_at"] = now
-                    lead["type"]     = "oa"
-                    lead["agent"]    = "ian"
-                    lead["verified"] = True
-                leads.extend(oa_leads)
-                log.info("Ian: Found " + str(len(oa_leads)) + " OA leads")
-    except Exception as e:
-        log.error("Ian OA error: " + str(e))
+            raw2     = extract_text(resp2.content)
+            oa_leads = parse_leads(raw2, "oa")
+            leads.extend(oa_leads)
+            log.info("Ian: Found " + str(len(oa_leads)) + " OA leads")
+        except Exception as e:
+            log.error("Ian OA error: " + str(e))
 
     log.info("Ian complete: " + str(len(leads)) + " total leads for user " + str(user_id)[:8])
     return leads

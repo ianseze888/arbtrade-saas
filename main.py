@@ -408,22 +408,20 @@ def scan_users_for_tier(tier: str):
                     loop.run_until_complete(save_leads_for_user(user_id, leads, tier))
                     loop.close()
                 scanned += 1
-                log.info(tier + " scan: user " + user_id[:8] + " got " + str(len(leads)) + " leads")
+                log.info(tier + " scan: user " + str(user_id or "")[:8] + " got " + str(len(leads)) + " leads")
                 # Log scan to scan_usage so support agent knows scans ran
                 try:
                     today = datetime.now().date().isoformat()
                     existing = supabase_admin.table("scan_usage").select("*").eq("user_id", user_id).eq("date", today).execute()
                     if existing.data:
                         supabase_admin.table("scan_usage").update({
-                            "count": existing.data[0]["count"] + 1,
-                            "last_scan": datetime.now().isoformat()
+                            "count": existing.data[0]["count"] + 1
                         }).eq("user_id", user_id).eq("date", today).execute()
                     else:
                         supabase_admin.table("scan_usage").insert({
                             "user_id": user_id,
                             "date": today,
-                            "count": 1,
-                            "last_scan": datetime.now().isoformat()
+                            "count": 1
                         }).execute()
                 except Exception as log_err:
                     log.error("Scan usage log error: " + str(log_err))
@@ -1490,7 +1488,7 @@ async def test_agent(secret: str = ""):
         users = supabase_admin.table("profiles").select("id,tier").limit(1).execute()
         supabase_ok = "yes - " + str(len(users.data or [])) + " users found"
 
-        # Test 3: Run a tiny agent scan
+        # Test 3: Run Ian and Ivan twin agents
         test_criteria = {
             "wholesale": {
                 "categories": ["Health & Household"],
@@ -1500,15 +1498,20 @@ async def test_agent(secret: str = ""):
                 "min_roi_percent": 30,
                 "enabled": True
             },
-            "online_arbitrage": {"enabled": False}
+            "online_arbitrage": {
+                "categories": ["Health & Household"],
+                "min_roi_percent": 35,
+                "max_buy_cost": 35,
+                "enabled": True
+            }
         }
 
         # Get first user's ID for test
         if users.data:
             test_user_id = users.data[0]["id"]
-            leads = run_agent_for_user(test_user_id, test_criteria, anthropic_client)
+            leads = run_twin_agents(test_user_id, test_criteria, anthropic_client, 6)
             leads_found = len(leads)
-            lead_names = [l.get("name","?") for l in leads[:3]]
+            lead_names = [l.get("name","?") + " [" + l.get("agent","?") + "]" for l in leads[:3]]
         else:
             leads_found = 0
             lead_names = []
