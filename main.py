@@ -290,6 +290,22 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
 
 # ── Ian & Ivan: Twin Agent Runner ────────────────────────────────────────────
 
+# Track API calls to prevent runaway spending
+_api_call_count = {"count": 0, "reset_time": 0}
+
+def check_api_rate_limit() -> bool:
+    """Return True if OK to make API call, False if rate limited."""
+    import time as _t
+    now = _t.time()
+    if now - _api_call_count["reset_time"] > 3600:  # Reset every hour
+        _api_call_count["count"] = 0
+        _api_call_count["reset_time"] = now
+    _api_call_count["count"] += 1
+    if _api_call_count["count"] > 50:  # Max 50 API calls per hour
+        log.warning("API rate limit reached — skipping scan to protect credits")
+        return False
+    return True
+
 def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12) -> list:
     """
     Run Agent Ian and Agent Ivan with staggered start to avoid rate limits.
@@ -319,6 +335,9 @@ def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12
     ian_thread  = threading.Thread(target=run_ian_thread,  daemon=True)
     ivan_thread = threading.Thread(target=run_ivan_thread, daemon=True)
 
+    if not check_api_rate_limit():
+        log.warning("Skipping scan - API rate limit reached")
+        return []
     log.info("Launching Agent Ian and Agent Ivan for user " + str(user_id)[:8])
     ian_thread.start()
     ivan_thread.start()
@@ -467,22 +486,8 @@ def start_scheduler():
 scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
 scheduler_thread.start()
 
-# Run initial scan on startup so leads flow immediately after redeploy
-def run_startup_scan():
-    """Run a scan immediately on startup without waiting for schedule."""
-    import time as _time
-    _time.sleep(30)  # Wait 30s for server to fully start
-    log.info("Running startup scan...")
-    try:
-        scan_agency()
-        scan_pro()
-        scan_trial_and_starter()
-        log.info("Startup scan complete")
-    except Exception as e:
-        log.error("Startup scan error: " + str(e))
-
-startup_thread = threading.Thread(target=run_startup_scan, daemon=True)
-startup_thread.start()
+# Startup scan disabled - scheduler handles all scanning
+# Removing to prevent double-scanning on redeploy
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
@@ -1675,7 +1680,7 @@ def health_monitor_job():
         log.error("Health monitor error: " + str(e))
 
 # Schedule health check every 15 minutes
-schedule.every(15).minutes.do(health_monitor_job)
+schedule.every(2).hours.do(health_monitor_job)  # Reduced from 15min to save API credits
 
 # ── Agent 4: Monitor Agent ────────────────────────────────────────────────────
 from monitor_agent import monitor_all_skus, send_monitor_alert
@@ -1745,7 +1750,8 @@ def run_intel_job():
     except Exception as e:
         log.error("Intel job error: " + str(e))
 
-schedule.every().day.at("07:00").do(run_intel_job)
+# Intel job disabled temporarily - re-enable when API credits stable
+# schedule.every().day.at("07:00").do(run_intel_job)
 
 # ── International Market Support ──────────────────────────────────────────────
 
@@ -1777,5 +1783,91 @@ async def get_market_intel_by_code(market_code: str, user=Depends(get_current_us
         return {"market": market, "intel": intel, "generated_at": datetime.now().isoformat()}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ── Owner Analytics ───────────────────────────────────────────────────────────
+
+@app.get("/owner/analytics")
+async def owner_analytics(secret: str = ""):
+    """Owner analytics — Agent Ian vs Ivan performance comparison."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        # Get all leads with agent data
+        result = supabase_admin.table("leads").select(
+            "id,name,type,recommendation,roi,data,found_at"
+        ).order("found_at", desc=True).limit(500).execute()
+
+        leads = []
+        for r in (result.data or []):
+            try:
+                d = json.loads(r.get("data","{}"))
+                d["found_at"] = r.get("found_at","")
+                d["db_recommendation"] = r.get("recommendation","")
+                leads.append(d)
+            except:
+                pass
+
+        # Agent stats
+        def agent_stats(agent_name: str) -> dict:
+            agent_leads = [l for l in leads if l.get("agent") == agent_name]
+            if not agent_leads:
+                return {"count": 0, "avg_roi": 0, "buy_rate": 0, "ws_count": 0, "oa_count": 0, "top_leads": []}
+
+            rois = []
+            for l in agent_leads:
+                try:
+                    roi = float(str(l.get("roi","0")).replace("%","").strip())
+                    rois.append(roi)
+                except:
+                    rois.append(0)
+
+            buy_count = sum(1 for l in agent_leads if l.get("recommendation") == "BUY")
+            ws_count  = sum(1 for l in agent_leads if l.get("type") == "wholesale")
+            oa_count  = sum(1 for l in agent_leads if l.get("type") == "oa")
+            avg_roi   = round(sum(rois) / len(rois), 1) if rois else 0
+            buy_rate  = round((buy_count / len(agent_leads)) * 100) if agent_leads else 0
+
+            # Top 3 leads by ROI
+            sorted_leads = sorted(agent_leads, key=lambda x: float(str(x.get("roi","0")).replace("%","") or 0), reverse=True)
+            top_leads = [{"name": l.get("name","")[:40], "roi": l.get("roi",""), "type": l.get("type",""), "rec": l.get("recommendation","")} for l in sorted_leads[:3]]
+
+            return {
+                "count":     len(agent_leads),
+                "avg_roi":   avg_roi,
+                "buy_count": buy_count,
+                "buy_rate":  buy_rate,
+                "ws_count":  ws_count,
+                "oa_count":  oa_count,
+                "top_leads": top_leads,
+            }
+
+        ian_stats  = agent_stats("Agent Ian")
+        ivan_stats = agent_stats("Agent Ivan")
+
+        # Overall platform stats
+        total_leads = len(leads)
+        buy_leads   = sum(1 for l in leads if l.get("recommendation") == "BUY")
+        all_rois    = []
+        for l in leads:
+            try: all_rois.append(float(str(l.get("roi","0")).replace("%","") or 0))
+            except: pass
+        avg_roi_all = round(sum(all_rois) / len(all_rois), 1) if all_rois else 0
+
+        # Winner
+        winner = "Agent Ian" if ian_stats["avg_roi"] > ivan_stats["avg_roi"] else "Agent Ivan"
+        if ian_stats["avg_roi"] == ivan_stats["avg_roi"]:
+            winner = "Tied"
+
+        return {
+            "agent_ian":    ian_stats,
+            "agent_ivan":   ivan_stats,
+            "winner":       winner,
+            "total_leads":  total_leads,
+            "buy_leads":    buy_leads,
+            "avg_roi":      avg_roi_all,
+            "timestamp":    datetime.now().isoformat()
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

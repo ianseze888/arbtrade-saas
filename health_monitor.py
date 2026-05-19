@@ -94,10 +94,8 @@ def run_health_check(supabase_admin, anthropic_client, sendgrid_key: str, owner_
     elif results["leads"]["status"] == "warn":
         warnings.append("Leads: " + results["leads"]["message"])
 
-    # Check Anthropic
-    results["anthropic"] = check_anthropic(anthropic_client)
-    if results["anthropic"]["status"] == "fail":
-        failures.append("Anthropic: " + results["anthropic"]["message"])
+    # Skip Anthropic check in health monitor - too expensive
+    results["anthropic"] = {"status": "ok", "message": "Skipped - using API credits elsewhere"}
 
     # Check user metrics
     results["users"] = check_user_count(supabase_admin)

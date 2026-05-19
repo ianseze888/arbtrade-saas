@@ -211,7 +211,38 @@ button.btn-gold:hover{background:var(--gold2)}
     <div class="met"><div class="met-label">Your Plan</div><div class="met-val white-c" style="font-size:15px" id="m-plan">—</div><div class="met-sub" id="m-limits"></div></div>
   </div>
   <div class="card">
-    <div class="card-title">Top BUY leads <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="dash-count"></span></div>
+    </div>
+
+<!-- OWNER ANALYTICS PANEL -->
+<div id="owner-analytics" style="display:none;margin-bottom:16px">
+  <div style="font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:8px">&#9670; OWNER ANALYTICS</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <div style="background:var(--bg2);border:1px solid rgba(200,169,110,0.2);border-radius:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--gold)">&#11044; Agent Ian</div><div id="ian-winner"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">LEADS</div><div style="font-size:16px;font-weight:700" id="ian-count">—</div></div>
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">AVG ROI</div><div style="font-size:16px;font-weight:700;color:var(--green)" id="ian-roi">—</div></div>
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">BUY RATE</div><div style="font-size:16px;font-weight:700" id="ian-buyrate">—</div></div>
+      </div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--muted);line-height:1.8" id="ian-top"></div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid rgba(62,207,160,0.2);border-radius:10px;padding:14px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:var(--oa)">&#11044; Agent Ivan</div><div id="ivan-winner"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">LEADS</div><div style="font-size:16px;font-weight:700" id="ivan-count">—</div></div>
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">AVG ROI</div><div style="font-size:16px;font-weight:700;color:var(--green)" id="ivan-roi">—</div></div>
+        <div><div style="font-size:9px;font-family:var(--mono);color:var(--muted)">BUY RATE</div><div style="font-size:16px;font-weight:700" id="ivan-buyrate">—</div></div>
+      </div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--muted);line-height:1.8" id="ivan-top"></div>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;display:flex;justify-content:space-between">
+    <span style="font-size:11px;font-family:var(--mono);color:var(--muted)">Winner:</span>
+    <span style="font-size:11px;font-weight:600;color:var(--gold)" id="analytics-winner">—</span>
+  </div>
+</div>
+
+<div class="card-title">Top BUY leads <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="dash-count"></span></div>
     <div id="dash-leads"><div class="loading"><div class="spinner"></div><br>Loading your leads...</div></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -457,7 +488,8 @@ function renderCard(l) {
   var roiColor=roiNum>=40?'var(--green)':roiNum>=30?'var(--gold)':'var(--red)';
   var typeClass=l.type==='oa'?'oa-card':'ws-card';
   var typeBadge=l.type==='oa'?'<span class="tag tag-oa">OA</span>':'<span class="tag tag-ws">WS</span>';
-  var agentBadge=l.agent==='Agent Ian'?'<span style="font-size:9px;font-family:var(--mono);color:var(--gold);opacity:.7">IAN</span>':l.agent==='Agent Ivan'?'<span style="font-size:9px;font-family:var(--mono);color:var(--oa);opacity:.7">IVAN</span>':'';
+  var isOwner=(userProfile&&userProfile.profile&&userProfile.profile.email==='ianseze@gmail.com');
+  var agentBadge=isOwner?(l.agent==='Agent Ian'?'<span style="font-size:9px;font-family:var(--mono);color:var(--gold);opacity:.6;margin-left:3px">&#11044; IAN</span>':l.agent==='Agent Ivan'?'<span style="font-size:9px;font-family:var(--mono);color:var(--oa);opacity:.6;margin-left:3px">&#11044; IVAN</span>':''):'';
   var recClass=l.recommendation==='BUY'?'rec-buy':l.recommendation==='WATCH'?'rec-watch':'rec-pass';
   var risks=getRisks(l.risk_flags).map(function(r){return '<span class="tag tag-risk">'+r+'</span>'}).join('');
   var foundAt=l.found_at?new Date(l.found_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
@@ -843,6 +875,31 @@ async function loadTicketHistory() {
         '</div>';
     }).join('');
   } catch(e) { console.error(e); }
+}
+
+
+async function loadOwnerAnalytics() {
+  if(!userProfile || !userProfile.profile || userProfile.profile.email !== 'ianseze@gmail.com') return;
+  var panel = document.getElementById('owner-analytics');
+  if(panel) panel.style.display = 'block';
+  try {
+    var resp = await fetch(API+'/owner/analytics?secret=arbtrade-admin-2026');
+    if(!resp.ok) return;
+    var data = await resp.json();
+    var ian = data.agent_ian || {};
+    var ivan = data.agent_ivan || {};
+    document.getElementById('ian-count').textContent    = ian.count || 0;
+    document.getElementById('ian-roi').textContent      = (ian.avg_roi || 0) + '%';
+    document.getElementById('ian-buyrate').textContent  = (ian.buy_rate || 0) + '%';
+    document.getElementById('ivan-count').textContent   = ivan.count || 0;
+    document.getElementById('ivan-roi').textContent     = (ivan.avg_roi || 0) + '%';
+    document.getElementById('ivan-buyrate').textContent = (ivan.buy_rate || 0) + '%';
+    if(ian.top_leads) document.getElementById('ian-top').innerHTML = ian.top_leads.map(function(l){return '&#8594; ' + l.name + ' (' + l.roi + ')'}).join('<br>');
+    if(ivan.top_leads) document.getElementById('ivan-top').innerHTML = ivan.top_leads.map(function(l){return '&#8594; ' + l.name + ' (' + l.roi + ')'}).join('<br>');
+    document.getElementById('analytics-winner').textContent = data.winner || '—';
+    if(data.winner === 'Agent Ian') document.getElementById('ian-winner').innerHTML = '<span style="color:var(--gold)">&#128081; Leading</span>';
+    if(data.winner === 'Agent Ivan') document.getElementById('ivan-winner').innerHTML = '<span style="color:var(--oa)">&#128081; Leading</span>';
+  } catch(e) { console.error('Analytics:', e); }
 }
 
 </script></body>
