@@ -321,7 +321,7 @@ def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12
     ian_thread  = threading.Thread(target=run_ian_thread,  daemon=True)
     ivan_thread = threading.Thread(target=run_ivan_thread, daemon=True)
 
-    log.info("Launching Ian and Ivan in parallel for user " + str(user_id)[:8])
+    log.info("Launching Agent Ian and Agent Ivan in parallel for user " + str(user_id)[:8])
     ian_thread.start()
     ivan_thread.start()
 
@@ -332,8 +332,8 @@ def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12
     # Merge results
     all_leads = ian_results + ivan_results
     log.info(
-        "Ian+Ivan complete: Ian=" + str(len(ian_results)) +
-        " Ivan=" + str(len(ivan_results)) +
+        "Agent Ian + Agent Ivan complete: Ian=" + str(len(ian_results)) +
+        " Agent Ivan=" + str(len(ivan_results)) +
         " Total=" + str(len(all_leads))
     )
 

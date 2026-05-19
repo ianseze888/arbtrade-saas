@@ -16,8 +16,8 @@ import random
 
 log = logging.getLogger(__name__)
 
-# Ivan's category pools (slots 16-30)
-IVAN_WS_CATEGORIES = [
+# Agent Ivan's category pools (slots 16-30)
+AGENT_IVAN_WS_CATEGORIES = [
     ["Baby", "Diapering & Potty Training"],
     ["Baby", "Feeding"],
     ["Baby", "Baby Care"],
@@ -35,8 +35,8 @@ IVAN_WS_CATEGORIES = [
     ["Office Products", "Technology Accessories"],
 ]
 
-# Ivan's distributors (slots 15-29)
-IVAN_DISTRIBUTORS = [
+# Agent Ivan's distributors (slots 15-29)
+AGENT_IVAN_DISTRIBUTORS = [
     "Expo West trade show brands",
     "ASD Market Week suppliers",
     "Specialty Food Association members",
@@ -54,8 +54,8 @@ IVAN_DISTRIBUTORS = [
     "Regional distributor networks",
 ]
 
-# Ivan's OA sources (slots 9-15)
-IVAN_OA_SOURCES = [
+# Agent Agent Ivan's OA sources (slots 9-15)
+AGENT_IVAN_OA_SOURCES = [
     ["Costco.com overstock", "BJs Wholesale deals", "Sams Club clearance"],
     ["brand liquidation portals", "Direct brand overstock sales", "manufacturer closeouts"],
     ["Groupon Goods deals", "Woot daily deals", "Zulily flash sales"],
@@ -66,16 +66,16 @@ IVAN_OA_SOURCES = [
 ]
 
 def get_ivan_slot(user_id: str) -> int:
-    """Get Ivan's category rotation slot — offset from Ian's."""
+    """Get Agent Ivan's category rotation slot — offset from Ian's."""
     hash_val = sum(ord(c) for c in str(user_id)) + 7  # Offset so they hit different categories
-    return hash_val % len(IVAN_WS_CATEGORIES)
+    return hash_val % len(AGENT_IVAN_WS_CATEGORIES)
 
 def build_ivan_ws_prompt(user_id: str, criteria: dict) -> str:
-    """Build Ivan's wholesale search prompt with web search."""
+    """Build Agent Ivan's wholesale search prompt with web search."""
     slot = get_ivan_slot(user_id)
-    cats = IVAN_WS_CATEGORIES[slot]
+    cats = AGENT_IVAN_WS_CATEGORIES[slot]
     cats_str = " > ".join(cats)
-    dists = IVAN_DISTRIBUTORS[slot % len(IVAN_DISTRIBUTORS):slot % len(IVAN_DISTRIBUTORS) + 3]
+    dists = AGENT_IVAN_DISTRIBUTORS[slot % len(AGENT_IVAN_DISTRIBUTORS):slot % len(AGENT_IVAN_DISTRIBUTORS) + 3]
     dist_str = ", ".join(dists)
     ws = criteria.get("wholesale", {})
     min_roi = ws.get("min_roi_percent", 30)
@@ -83,7 +83,7 @@ def build_ivan_ws_prompt(user_id: str, criteria: dict) -> str:
     max_sellers = ws.get("max_sellers", 8)
 
     return (
-        "You are IVAN, an expert Amazon FBA wholesale researcher with live web search access.\n\n"
+        "You are AGENT IVAN, an expert Amazon FBA wholesale researcher with live web search access.\n\n"
         "MISSION: Find 6 real wholesale product opportunities. Use web search to verify prices and ASINs.\n\n"
         "SEARCH STRATEGY:\n"
         "1. Search Amazon for products in: " + cats_str + "\n"
@@ -111,16 +111,16 @@ def build_ivan_ws_prompt(user_id: str, criteria: dict) -> str:
     )
 
 def build_ivan_oa_prompt(user_id: str, criteria: dict) -> str:
-    """Build Ivan's OA search prompt with web search."""
+    """Build Agent Ivan's OA search prompt with web search."""
     slot = get_ivan_slot(user_id)
-    sources = IVAN_OA_SOURCES[slot % len(IVAN_OA_SOURCES)]
+    sources = AGENT_IVAN_OA_SOURCES[slot % len(AGENT_IVAN_OA_SOURCES)]
     sources_str = ", ".join(sources)
     oa = criteria.get("online_arbitrage", {})
     min_roi = oa.get("min_roi_percent", 35)
     max_buy = oa.get("max_buy_cost", 35)
 
     return (
-        "You are IVAN, an expert Amazon FBA online arbitrage researcher with live web search.\n\n"
+        "You are AGENT IVAN, an expert Amazon FBA online arbitrage researcher with live web search.\n\n"
         "MISSION: Find 6 real OA deals. Use web search to verify current prices where possible.\n\n"
         "SEARCH STRATEGY:\n"
         "1. Search these sources for current sales/clearance: " + sources_str + "\n"
@@ -168,19 +168,19 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
                 for item in items:
                     item["found_at"] = now
                     item["type"]     = lead_type
-                    item["agent"]    = "ivan"
+                    item["agent"]    = "Agent Ivan"
                     item["verified"] = True
                 return items
         except Exception as je:
-            log.error("Ivan JSON parse error: " + str(je))
+            log.error("Agent Ivan JSON parse error: " + str(je))
         return []
 
-    # Ivan's wholesale scan
+    # Agent Ivan's wholesale scan
     ws_enabled = criteria.get("wholesale", {}).get("enabled", True)
     if ws_enabled:
         try:
             ws_prompt = build_ivan_ws_prompt(user_id, criteria)
-            log.info("Ivan: Running wholesale scan for user " + str(user_id)[:8])
+            log.info("Agent Ivan: Running wholesale scan for user " + str(user_id)[:8])
             time.sleep(random.uniform(1, 3))
             resp = ai_client.messages.create(
                 model="claude-sonnet-4-5",
@@ -191,16 +191,16 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
             raw     = extract_text(resp.content)
             ws_leads = parse_leads(raw, "wholesale")
             leads.extend(ws_leads)
-            log.info("Ivan: Found " + str(len(ws_leads)) + " wholesale leads")
+            log.info("Agent Ivan: Found " + str(len(ws_leads)) + " wholesale leads")
         except Exception as e:
-            log.error("Ivan wholesale error: " + str(e))
+            log.error("Agent Ivan wholesale error: " + str(e))
 
-    # Ivan's OA scan
+    # Agent Ivan's OA scan
     oa_enabled = criteria.get("online_arbitrage", {}).get("enabled", True)
     if oa_enabled:
         try:
             oa_prompt = build_ivan_oa_prompt(user_id, criteria)
-            log.info("Ivan: Running OA scan for user " + str(user_id)[:8])
+            log.info("Agent Ivan: Running OA scan for user " + str(user_id)[:8])
             time.sleep(random.uniform(1, 3))
             resp2 = ai_client.messages.create(
                 model="claude-sonnet-4-5",
@@ -211,9 +211,9 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
             raw2     = extract_text(resp2.content)
             oa_leads = parse_leads(raw2, "oa")
             leads.extend(oa_leads)
-            log.info("Ivan: Found " + str(len(oa_leads)) + " OA leads")
+            log.info("Agent Ivan: Found " + str(len(oa_leads)) + " OA leads")
         except Exception as e:
-            log.error("Ivan OA error: " + str(e))
+            log.error("Agent Ivan OA error: " + str(e))
 
-    log.info("Ivan complete: " + str(len(leads)) + " total leads for user " + str(user_id)[:8])
+    log.info("Agent Ivan complete: " + str(len(leads)) + " total leads for user " + str(user_id)[:8])
     return leads
