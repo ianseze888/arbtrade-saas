@@ -1572,3 +1572,106 @@ def health_monitor_job():
 
 # Schedule health check every 15 minutes
 schedule.every(15).minutes.do(health_monitor_job)
+
+# ── Agent 4: Monitor Agent ────────────────────────────────────────────────────
+from monitor_agent import monitor_all_skus, send_monitor_alert
+
+@app.get("/monitor/run")
+async def run_monitor(user=Depends(get_current_user)):
+    """Run market monitor for user's active SKUs."""
+    try:
+        profile = await get_user_profile(user.id)
+        tier    = profile.get("tier","starter") if profile else "starter"
+        if tier not in ["pro","agency","custom"]:
+            raise HTTPException(status_code=403, detail="Monitor available on Pro and Agency plans")
+        results = monitor_all_skus(str(user.id), supabase_admin, anthropic_client)
+        return {"monitored": len(results), "results": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+def run_monitor_job():
+    """Scheduled job — monitors all Pro/Agency users' SKUs every 6 hours."""
+    log.info("Running market monitor job...")
+    try:
+        for tier in ["pro","agency","custom"]:
+            users = supabase_admin.table("profiles").select("id,email,tier").eq("tier", tier).execute()
+            for profile in (users.data or []):
+                user_id = profile["id"]
+                email   = profile.get("email","")
+                results = monitor_all_skus(user_id, supabase_admin, anthropic_client)
+                alerts  = [r for r in results if r.get("alerts")]
+                if alerts and email:
+                    sendgrid_key = os.getenv("SENDGRID_API_KEY","")
+                    send_monitor_alert(email, alerts, sendgrid_key)
+        log.info("Market monitor job complete")
+    except Exception as e:
+        log.error("Monitor job error: " + str(e))
+
+schedule.every(6).hours.do(run_monitor_job)
+
+# ── Agent 5: Market Intelligence ──────────────────────────────────────────────
+from market_intel_agent import run_market_intel, format_intel_for_digest, save_intel_to_db
+
+@app.get("/intel/report")
+async def get_market_intel(market: str = "US", user=Depends(get_current_user)):
+    """Get market intelligence report for specified market."""
+    try:
+        profile = await get_user_profile(user.id)
+        tier    = profile.get("tier","starter") if profile else "starter"
+        if tier not in ["pro","agency","custom"]:
+            raise HTTPException(status_code=403, detail="Market intelligence available on Pro and Agency plans")
+        markets = [m.strip().upper() for m in market.split(",")]
+        intel   = run_market_intel(anthropic_client, markets)
+        save_intel_to_db(intel, supabase_admin)
+        return {"intel": intel, "markets": markets, "generated_at": datetime.now().isoformat()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+def run_intel_job():
+    """Scheduled job — runs market intelligence daily at 7 AM."""
+    log.info("Running market intelligence job...")
+    try:
+        intel = run_market_intel(anthropic_client, ["US"])
+        save_intel_to_db(intel, supabase_admin)
+        log.info("Market intelligence complete")
+    except Exception as e:
+        log.error("Intel job error: " + str(e))
+
+schedule.every().day.at("07:00").do(run_intel_job)
+
+# ── International Market Support ──────────────────────────────────────────────
+
+SUPPORTED_MARKETS = {
+    "US": {"name": "United States", "domain": "amazon.com",    "currency": "USD", "status": "live"},
+    "CA": {"name": "Canada",        "domain": "amazon.ca",     "currency": "CAD", "status": "beta"},
+    "MX": {"name": "Mexico",        "domain": "amazon.com.mx", "currency": "MXN", "status": "beta"},
+    "UK": {"name": "United Kingdom","domain": "amazon.co.uk",  "currency": "GBP", "status": "coming_soon"},
+    "DE": {"name": "Germany",       "domain": "amazon.de",     "currency": "EUR", "status": "coming_soon"},
+    "JP": {"name": "Japan",         "domain": "amazon.co.jp",  "currency": "JPY", "status": "coming_soon"},
+}
+
+@app.get("/markets")
+async def get_markets():
+    """Get all supported and upcoming markets."""
+    return {"markets": SUPPORTED_MARKETS}
+
+@app.get("/markets/{market_code}/intel")
+async def get_market_intel_by_code(market_code: str, user=Depends(get_current_user)):
+    """Get market intelligence for a specific market."""
+    try:
+        code = market_code.upper()
+        if code not in SUPPORTED_MARKETS:
+            raise HTTPException(status_code=404, detail="Market not supported")
+        market = SUPPORTED_MARKETS[code]
+        if market["status"] == "coming_soon":
+            return {"market": market, "status": "coming_soon", "message": "This market is coming soon!"}
+        intel = run_market_intel(anthropic_client, [code])
+        return {"market": market, "intel": intel, "generated_at": datetime.now().isoformat()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
