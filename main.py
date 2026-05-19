@@ -292,42 +292,40 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
 
 def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12) -> list:
     """
-    Run Ian and Ivan in parallel threads.
-    Ian covers categories 1-15, Ivan covers 16-30.
+    Run Agent Ian and Agent Ivan with staggered start to avoid rate limits.
+    Ian starts first, Ivan starts 15 seconds later.
     Both use live web search. Results merged and deduplicated.
     """
     import threading
     ian_results  = []
     ivan_results = []
-    errors       = []
 
     def run_ian_thread():
         try:
             results = run_ian(user_id, criteria, ai_client)
             ian_results.extend(results)
         except Exception as e:
-            errors.append("Ian error: " + str(e))
-            log.error("Ian thread error: " + str(e))
+            log.error("Agent Ian thread error: " + str(e))
 
     def run_ivan_thread():
         try:
+            time.sleep(15)  # Stagger Ivan by 15 seconds to avoid rate limits
             results = run_ivan(user_id, criteria, ai_client)
             ivan_results.extend(results)
         except Exception as e:
-            errors.append("Ivan error: " + str(e))
-            log.error("Ivan thread error: " + str(e))
+            log.error("Agent Ivan thread error: " + str(e))
 
-    # Launch both agents in parallel
+    # Launch both agents - Ivan starts 15s after Ian
     ian_thread  = threading.Thread(target=run_ian_thread,  daemon=True)
     ivan_thread = threading.Thread(target=run_ivan_thread, daemon=True)
 
-    log.info("Launching Agent Ian and Agent Ivan in parallel for user " + str(user_id)[:8])
+    log.info("Launching Agent Ian and Agent Ivan for user " + str(user_id)[:8])
     ian_thread.start()
     ivan_thread.start()
 
-    # Wait for both to complete (max 120 seconds)
-    ian_thread.join(timeout=120)
-    ivan_thread.join(timeout=120)
+    # Wait for both to complete (max 180 seconds)
+    ian_thread.join(timeout=180)
+    ivan_thread.join(timeout=180)
 
     # Merge results
     all_leads = ian_results + ivan_results
