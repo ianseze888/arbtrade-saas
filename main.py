@@ -586,7 +586,7 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
     display_limit = display_limit_map.get(tier, 200)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     try:
-        query = supabase_admin.table("leads").select("*").eq("user_id", user.id).gte("found_at", cutoff).order("roi", desc=True).limit(display_limit)
+        query = supabase_admin.table("leads").select("*").eq("user_id", user.id).gte("found_at", cutoff).order("found_at", desc=True).limit(display_limit)
         if filter == "wholesale": query = query.eq("type","wholesale")
         elif filter == "oa": query = query.eq("type","oa")
         elif filter == "BUY": query = query.eq("recommendation","BUY")

@@ -232,6 +232,13 @@ button.btn-gold:hover{background:var(--gold2)}
     <button class="fbtn" onclick="setFilter('oa',this)">OA</button>
     <button class="fbtn" onclick="setFilter('BUY',this)">BUY only</button>
     <button class="fbtn" onclick="setFilter('WATCH',this)">WATCH</button>
+    <div style="margin-left:auto;display:flex;gap:4px;align-items:center">
+      <span style="font-size:10px;font-family:var(--mono);color:var(--dim)">Sort:</span>
+      <button class="fbtn active" id="sort-new" onclick="setSort('new',this)">📅 Newest</button>
+      <button class="fbtn" id="sort-roi" onclick="setSort('roi',this)">📈 ROI</button>
+      <button class="fbtn" id="sort-ian" onclick="setSort('ian',this)">Agent Ian</button>
+      <button class="fbtn" id="sort-ivan" onclick="setSort('ivan',this)">Agent Ivan</button>
+    </div>
     <button class="refresh-btn" onclick="loadLeads()">↺ Refresh</button>
     <span class="fstatus" id="fstatus">—</span>
   </div>
@@ -494,6 +501,41 @@ function setFilter(f, btn) {
   applyFilter();
 }
 
+var currentSort = 'new';
+
+function setSort(s, btn) {
+  currentSort = s;
+  document.querySelectorAll('#sort-new,#sort-roi,#sort-ian,#sort-ivan').forEach(function(b){
+    b.classList.remove('active');
+  });
+  if(btn) btn.classList.add('active');
+  applyFilter();
+}
+
+function sortLeads(leads) {
+  var sorted = leads.slice();
+  if(currentSort === 'roi') {
+    sorted.sort(function(a,b){
+      var ra = parseFloat(String(a.roi||'0').replace('%','')) || 0;
+      var rb = parseFloat(String(b.roi||'0').replace('%','')) || 0;
+      return rb - ra;
+    });
+  } else if(currentSort === 'new') {
+    sorted.sort(function(a,b){
+      var da = new Date(a.found_at||0).getTime();
+      var db = new Date(b.found_at||0).getTime();
+      return db - da;
+    });
+  } else if(currentSort === 'ian') {
+    sorted = sorted.filter(function(l){ return l.agent === 'Agent Ian'; });
+    sorted.sort(function(a,b){ return new Date(b.found_at||0) - new Date(a.found_at||0); });
+  } else if(currentSort === 'ivan') {
+    sorted = sorted.filter(function(l){ return l.agent === 'Agent Ivan'; });
+    sorted.sort(function(a,b){ return new Date(b.found_at||0) - new Date(a.found_at||0); });
+  }
+  return sorted;
+}
+
 function applyFilter() {
   var filtered=allLeads.filter(function(l){
     if(currentFilter==='wholesale') return l.type==='wholesale';
@@ -502,6 +544,7 @@ function applyFilter() {
     if(currentFilter==='WATCH') return l.recommendation==='WATCH';
     return true;
   });
+  filtered = sortLeads(filtered);
   document.getElementById('fstatus').textContent=filtered.length+' leads';
   renderLeads(filtered,'results-list',null);
 }
