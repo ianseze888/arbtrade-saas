@@ -403,6 +403,23 @@ def start_scheduler():
 scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
 scheduler_thread.start()
 
+# Run initial scan on startup so leads flow immediately after redeploy
+def run_startup_scan():
+    """Run a scan immediately on startup without waiting for schedule."""
+    import time as _time
+    _time.sleep(30)  # Wait 30s for server to fully start
+    log.info("Running startup scan...")
+    try:
+        scan_agency()
+        scan_pro()
+        scan_trial_and_starter()
+        log.info("Startup scan complete")
+    except Exception as e:
+        log.error("Startup scan error: " + str(e))
+
+startup_thread = threading.Thread(target=run_startup_scan, daemon=True)
+startup_thread.start()
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -510,7 +527,14 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
         elif filter == "oa": query = query.eq("type","oa")
         elif filter == "BUY": query = query.eq("recommendation","BUY")
         result = query.execute()
-        leads = [json.loads(r["data"]) for r in (result.data or [])]
+        raw_leads = [json.loads(r["data"]) for r in (result.data or [])]
+        # Clean fake ASINs before returning to dashboard
+        for l in raw_leads:
+            asin = str(l.get("asin","") or "")
+            if not (len(asin)==10 and asin.startswith("B") and asin[1:].isalnum() 
+                    and asin not in ["B00XXXXX","B0EXAMPLE","B0XXXXXXXX"]):
+                l["asin"] = ""  # Strip fake ASIN — dashboard will use name search
+        leads = raw_leads
         ws_count = sum(1 for l in leads if l.get("type")=="wholesale")
         oa_count = sum(1 for l in leads if l.get("type")=="oa")
         best_roi = max((safe_roi(l.get("roi",0)) for l in leads), default=0)
