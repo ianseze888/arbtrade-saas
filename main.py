@@ -221,6 +221,8 @@ def normalize_lead(lead):
 
 # Agent logic moved to agent_saas.py
 from agent_saas import run_agent_for_user, get_lead_history_days, deduplicate_leads
+from ian_agent import run_ian
+from ivan_agent import run_ivan
 from verify_agent import verify_leads_batch, get_verification_badge
 from outreach_agent import run_outreach_for_lead
 
@@ -286,6 +288,73 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
 
 # ── Scheduled global scan ────────────────────────────────────────────────────
 
+# ── Ian & Ivan: Twin Agent Runner ────────────────────────────────────────────
+
+def run_twin_agents(user_id: str, criteria: dict, ai_client, max_leads: int = 12) -> list:
+    """
+    Run Ian and Ivan in parallel threads.
+    Ian covers categories 1-15, Ivan covers 16-30.
+    Both use live web search. Results merged and deduplicated.
+    """
+    import threading
+    ian_results  = []
+    ivan_results = []
+    errors       = []
+
+    def run_ian_thread():
+        try:
+            results = run_ian(user_id, criteria, ai_client)
+            ian_results.extend(results)
+        except Exception as e:
+            errors.append("Ian error: " + str(e))
+            log.error("Ian thread error: " + str(e))
+
+    def run_ivan_thread():
+        try:
+            results = run_ivan(user_id, criteria, ai_client)
+            ivan_results.extend(results)
+        except Exception as e:
+            errors.append("Ivan error: " + str(e))
+            log.error("Ivan thread error: " + str(e))
+
+    # Launch both agents in parallel
+    ian_thread  = threading.Thread(target=run_ian_thread,  daemon=True)
+    ivan_thread = threading.Thread(target=run_ivan_thread, daemon=True)
+
+    log.info("Launching Ian and Ivan in parallel for user " + str(user_id)[:8])
+    ian_thread.start()
+    ivan_thread.start()
+
+    # Wait for both to complete (max 120 seconds)
+    ian_thread.join(timeout=120)
+    ivan_thread.join(timeout=120)
+
+    # Merge results
+    all_leads = ian_results + ivan_results
+    log.info(
+        "Ian+Ivan complete: Ian=" + str(len(ian_results)) +
+        " Ivan=" + str(len(ivan_results)) +
+        " Total=" + str(len(all_leads))
+    )
+
+    # Deduplicate by name
+    seen  = set()
+    unique = []
+    for lead in all_leads:
+        key = (lead.get("name","") + lead.get("asin","")).lower()
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(lead)
+
+    # Sort by ROI descending
+    def get_roi(lead):
+        try: return float(str(lead.get("roi","0")).replace("%","").strip())
+        except: return 0
+    unique.sort(key=get_roi, reverse=True)
+
+    # Trim to max leads
+    return unique[:max_leads]
+
 # ── Tier-based scan intervals ────────────────────────────────────────────────
 # Starter: every 12 hours | Pro: every 8 hours | Agency: every 6 hours
 # Each user gets scanned on their own interval based on their tier
@@ -332,9 +401,8 @@ def scan_users_for_tier(tier: str):
                 criteria = default_criteria()
 
             try:
-                leads = run_agent_for_user(user_id, criteria, anthropic_client)
-                # Trim to tier limit
-                leads = leads[:max_leads]
+                # Run Ian and Ivan in parallel for real verified leads
+                leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads)
                 if leads:
                     loop = _asyncio.new_event_loop()
                     loop.run_until_complete(save_leads_for_user(user_id, leads, tier))
@@ -568,10 +636,8 @@ async def manual_scan(background_tasks: BackgroundTasks, user=Depends(get_curren
     async def do_scan():
         try:
             tier = profile.get("tier", "starter") if profile else "starter"
-            leads = run_agent_for_user(user.id, criteria, anthropic_client)
-            leads = deduplicate_leads(leads)
             max_leads = TIER_LIMITS.get(tier, TIER_LIMITS["starter"])["leads_per_cycle"]
-            leads = leads[:max_leads]
+            leads = run_twin_agents(user.id, criteria, anthropic_client, max_leads)
             if leads:
                 await save_leads_for_user(user.id, leads, tier)
         except Exception as e:
