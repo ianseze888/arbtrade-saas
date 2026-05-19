@@ -191,6 +191,19 @@ def extract_json(text):
     try: return json.loads(text[s:e])
     except: return None
 
+def is_valid_asin(asin: str) -> bool:
+    """Validate that an ASIN is real format - starts with B, exactly 10 chars."""
+    if not asin or asin == "null" or asin == "None":
+        return False
+    asin = str(asin).strip()
+    return len(asin) == 10 and asin.startswith("B") and asin[1:].isalnum()
+
+def safe_asin(asin) -> str:
+    """Return valid ASIN or empty string."""
+    if is_valid_asin(str(asin or "")):
+        return str(asin).strip()
+    return ""
+
 def safe_roi(val):
     try: return int(str(val).replace("%","").split("-")[0].strip() or 0)
     except: return 0
@@ -261,7 +274,7 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
             supabase_admin.table("leads").insert({
                 "user_id":        user_id,
                 "name":           lead.get("name",""),
-                "asin":           lead.get("asin","") or "",
+                "asin":           safe_asin(lead.get("asin","")),  # Only save real ASINs
                 "data":           json.dumps(lead),
                 "recommendation": lead.get("recommendation",""),
                 "roi":            safe_roi(lead.get("roi",0)),

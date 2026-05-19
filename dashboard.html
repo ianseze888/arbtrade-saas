@@ -6,6 +6,7 @@
   <link rel="shortcut icon" href="favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARBTRADE — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -370,6 +371,31 @@ button.btn-gold:hover{background:var(--gold2)}
 <script>
 var API = 'https://arbtrade-saas-production.up.railway.app';
 var token = localStorage.getItem('arbtrade_token');
+
+// Supabase client for token refresh
+var SUPABASE_URL = 'https://femihqoeihqbbewwzdez.supabase.co';
+var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlbWlocW9laWhxYmJld3d6ZGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxNDYzMzksImV4cCI6MjA2MTcyMjMzOX0.bW-rFoIqkXUiE2U0vKIIBxHCd-Y85n-nwU3_aUXn65A';
+var _supabase = null;
+try { _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON); } catch(e) {}
+
+async function initSession() {
+  if(!_supabase) return;
+  try {
+    var refreshToken = localStorage.getItem('arbtrade_refresh_token');
+    if(refreshToken) {
+      var result = await _supabase.auth.refreshSession({refresh_token: refreshToken});
+      if(result.data && result.data.session) {
+        localStorage.setItem('arbtrade_token', result.data.session.access_token);
+        localStorage.setItem('arbtrade_refresh_token', result.data.session.refresh_token);
+        token = result.data.session.access_token;
+      }
+    }
+  } catch(e) { console.log('Session refresh:', e); }
+}
+
+// Auto refresh every 45 mins
+setInterval(function(){ initSession(); }, 45*60*1000);
+
 var allLeads = [];
 var currentFilter = 'all';
 var userProfile = null;
@@ -441,7 +467,7 @@ function renderCard(l) {
       '<div class="tags">'+typeBadge+risks+'</div>'
   +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
   +((!userProfile || userProfile.experience_level !== 'pro') ? '<a href="onboarding.html?lead='+encodeURIComponent(l.name||'')+'&path='+(l.type==='oa'?'oa':'ws')+'" style="font-size:11px;font-family:var(--mono);color:var(--gold);text-decoration:none;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:3px 10px;border-radius:20px">→ How to source this</a>' : '')
-  +(l.asin && l.asin.length===10 && l.asin[0]==='B' ? '<a href="https://www.amazon.com/dp/'+l.asin+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>' : '<a href="https://www.amazon.com/s?k='+encodeURIComponent(l.name||'')+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>')
+  +(l.asin && l.asin.length===10 && l.asin[0]==='B' && l.asin !== 'B00XXXXX' && l.asin !== 'B0EXAMPLE' ? '<a href="https://www.amazon.com/dp/'+l.asin+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>' : '<a href="https://www.amazon.com/s?k='+encodeURIComponent(l.name||'')+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>')
   +'<button onclick="openApproveModal('+JSON.stringify(l)+')" style="font-size:11px;font-family:var(--mono);color:var(--green);background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">✓ Approve</button>'
   +'</div>' +
     '</div>' +
@@ -637,9 +663,11 @@ var _exp = localStorage.getItem('arbtrade_exp') || 'new';
 var _guideLink = document.getElementById('guide-link');
 if(_guideLink) _guideLink.style.display = _exp === 'new' ? 'flex' : 'none';
 
-loadProfile();
-loadLeads();
-loadReorderAlerts();
+initSession().then(function(){
+  loadProfile();
+  loadLeads();
+  loadReorderAlerts();
+});
 setInterval(loadLeads, 300000);
 </script>
 
