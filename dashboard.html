@@ -462,7 +462,7 @@ function nav(id) {
   document.getElementById('page-'+id).classList.add('active');
   var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
-  if(id==='results') applyFilter();
+  if(id==='results') { setTimeout(function(){ applyFilter(); }, 50); }
   if(id==='scan') loadUsage();
   if(id==='criteria') loadCriteria();
 }
@@ -744,6 +744,7 @@ initSession().then(function(){
   loadProfile();
   loadLeads();
   loadReorderAlerts();
+  loadOwnerAnalytics();
 });
 setInterval(loadLeads, 300000);
 </script>
