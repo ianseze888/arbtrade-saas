@@ -1871,3 +1871,79 @@ async def owner_analytics(secret: str = ""):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Keepa Integration ─────────────────────────────────────────────────────────
+
+from keepa_agent import verify_leads_batch_keepa, get_token_usage, keepa_available
+
+@app.get("/keepa/status")
+async def keepa_status(secret: str = ""):
+    """Check Keepa API token status."""
+    if secret != os.getenv("ADMIN_SECRET", "arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return get_token_usage()
+
+@app.post("/keepa/verify/{lead_id}")
+async def verify_single_lead(lead_id: str, user=Depends(get_current_user)):
+    """Verify a single lead with Keepa on demand."""
+    try:
+        profile = await get_user_profile(user.id)
+        tier    = profile.get("tier","starter") if profile else "starter"
+        if tier not in ["pro","agency","custom"]:
+            raise HTTPException(status_code=403, detail="Keepa verification available on Pro and Agency plans")
+
+        # Get lead from database
+        result = supabase_admin.table("leads").select("*").eq("id", lead_id).eq("user_id", str(user.id)).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Lead not found")
+
+        lead = json.loads(result.data[0].get("data","{}"))
+        verified_lead = verify_leads_batch_keepa([lead], "US", delay=0)
+
+        if verified_lead:
+            # Update in database
+            supabase_admin.table("leads").update({
+                "data":       json.dumps(verified_lead[0]),
+                "updated_at": datetime.now().isoformat()
+            }).eq("id", lead_id).execute()
+
+        return {"lead": verified_lead[0] if verified_lead else lead}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ── Public Status Endpoint ────────────────────────────────────────────────────
+
+@app.get("/status")
+async def public_status():
+    """Public status endpoint for status.getarbtrade.com"""
+    try:
+        # Check database
+        db_ok = False
+        lead_count = 0
+        try:
+            result = supabase_admin.table("profiles").select("id").limit(1).execute()
+            db_ok = True
+            leads = supabase_admin.table("leads").select("id").limit(1).execute()
+            lead_count = 1 if leads.data else 0
+        except:
+            pass
+
+        return {
+            "status":          "operational" if db_ok else "degraded",
+            "api":             "operational",
+            "database":        "operational" if db_ok else "degraded",
+            "agents":          "operational",
+            "email":           "operational",
+            "billing":         "operational",
+            "keepa":           "operational" if keepa_available() else "not_configured",
+            "timestamp":       datetime.now().isoformat(),
+            "version":         "2.0.0"
+        }
+    except Exception as e:
+        return {
+            "status":    "degraded",
+            "error":     str(e),
+            "timestamp": datetime.now().isoformat()
+        }

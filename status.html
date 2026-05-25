@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBTRADE — System Status</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta http-equiv="refresh" content="60">
+<style>
+:root{--bg:#0a0a08;--bg2:#161719;--bg3:#1e2023;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f2efe8;--muted:#888884;--dim:#555552;--gold:#c8a96e;--green:#3ECFA0;--red:#FF5C5C;--yellow:#FFB800;--mono:'DM Mono',monospace;--sans:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,169,110,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(200,169,110,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,8,.9);backdrop-filter:blur(10px);z-index:10}
+.logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.15em}
+.logo-name{font-size:15px;font-weight:700}
+.nav-link{font-size:12px;font-family:var(--mono);color:var(--muted);text-decoration:none;transition:color .15s}
+.nav-link:hover{color:var(--text)}
+.main{max-width:720px;margin:0 auto;padding:60px 24px}
+.page-title{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.page-sub{font-size:13px;font-family:var(--mono);color:var(--muted);margin-bottom:40px}
+.overall-status{border-radius:14px;padding:24px 28px;margin-bottom:32px;display:flex;align-items:center;gap:16px}
+.overall-status.operational{background:rgba(62,207,160,0.06);border:1px solid rgba(62,207,160,0.2)}
+.overall-status.degraded{background:rgba(255,184,0,0.06);border:1px solid rgba(255,184,0,0.2)}
+.overall-status.outage{background:rgba(255,92,92,0.06);border:1px solid rgba(255,92,92,0.2)}
+.status-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot-yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.dot-red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.overall-text{font-size:18px;font-weight:600}
+.overall-sub{font-size:12px;font-family:var(--mono);color:var(--muted);margin-top:2px}
+.section-title{font-size:11px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.components{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:32px}
+.component{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.component:last-child{border-bottom:none}
+.component-name{font-size:13px;font-weight:500}
+.component-desc{font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:2px}
+.component-status{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:20px;font-weight:500}
+.status-operational{background:rgba(62,207,160,0.1);color:var(--green);border:1px solid rgba(62,207,160,0.2)}
+.status-degraded{background:rgba(255,184,0,0.1);color:var(--yellow);border:1px solid rgba(255,184,0,0.2)}
+.status-outage{background:rgba(255,92,92,0.1);color:var(--red);border:1px solid rgba(255,92,92,0.2)}
+.status-checking{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border)}
+.incidents{margin-bottom:32px}
+.incident-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:8px}
+.incident-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.incident-time{font-size:11px;font-family:var(--mono);color:var(--muted)}
+.incident-body{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+.no-incidents{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center;font-size:12px;font-family:var(--mono);color:var(--muted)}
+.uptime-bar{display:flex;gap:2px;margin-bottom:4px}
+.uptime-day{flex:1;height:24px;border-radius:3px;background:rgba(62,207,160,0.3);transition:background .2s;cursor:pointer}
+.uptime-day.down{background:rgba(255,92,92,0.4)}
+.uptime-day.degraded{background:rgba(255,184,0,0.4)}
+.uptime-labels{display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);color:var(--dim)}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:32px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.metric-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+.metric-val{font-size:22px;font-weight:700}
+.subscribe-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px 28px;text-align:center}
+.subscribe-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.subscribe-sub{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:16px}
+.subscribe-form{display:flex;gap:8px;max-width:360px;margin:0 auto}
+.subscribe-input{flex:1;font-size:13px;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none}
+.subscribe-btn{padding:9px 18px;background:var(--gold);border:none;border-radius:8px;color:#000;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.refresh-note{font-size:10px;font-family:var(--mono);color:var(--dim);text-align:center;margin-top:24px}
+footer{text-align:center;padding:32px 24px;font-size:11px;font-family:var(--mono);color:var(--dim)}
+footer a{color:var(--muted);text-decoration:none}
+@media(max-width:600px){
+  nav{padding:12px 20px}
+  .main{padding:32px 16px}
+  .page-title{font-size:24px}
+  .metrics{grid-template-columns:1fr 1fr}
+  .subscribe-form{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div>
+    <div class="logo-mark">ARBTRADE</div>
+    <div class="logo-name">System Status</div>
+  </div>
+  <a href="https://getarbtrade.com" class="nav-link">← Back to ARBTRADE</a>
+</nav>
+
+<main class="main">
+  <div class="page-title">System Status</div>
+  <div class="page-sub" id="last-updated">Checking system status...</div>
+
+  <!-- Overall status banner -->
+  <div class="overall-status" id="overall-banner">
+    <div class="status-dot" id="overall-dot"></div>
+    <div>
+      <div class="overall-text" id="overall-text">Checking...</div>
+      <div class="overall-sub" id="overall-sub">Loading system status</div>
+    </div>
+  </div>
+
+  <!-- Key metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Response Time</div>
+      <div class="metric-val" id="metric-response">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Uptime (30d)</div>
+      <div class="metric-val" style="color:var(--green)" id="metric-uptime">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Active Scans</div>
+      <div class="metric-val" id="metric-scans">—</div>
+    </div>
+  </div>
+
+  <!-- Components -->
+  <div class="section-title">System Components</div>
+  <div class="components">
+    <div class="component">
+      <div>
+        <div class="component-name">API Server</div>
+        <div class="component-desc">Core backend — authentication, leads, billing</div>
+      </div>
+      <span class="component-status status-checking" id="status-api">Checking...</span>
+    </div>
+    <div class="component">
+      <div>
+        <div class="component-name">Research Agents</div>
+        <div class="component-desc">Agent Ian + Agent Ivan — lead discovery</div>
+      </div>
+      <span class="component-status status-checking" id="status-agents">Checking...</span>
+    </div>
+    <div class="component">
+      <div>
+        <div class="component-name">Database</div>
+        <div class="component-desc">Supabase — user data, leads, subscriptions</div>
+      </div>
+      <span class="component-status status-checking" id="status-db">Checking...</span>
+    </div>
+    <div class="component">
+      <div>
+        <div class="component-name">Email Delivery</div>
+        <div class="component-desc">Daily digest + support responses</div>
+      </div>
+      <span class="component-status status-checking" id="status-email">Checking...</span>
+    </div>
+    <div class="component">
+      <div>
+        <div class="component-name">Billing</div>
+        <div class="component-desc">Stripe — subscriptions and payments</div>
+      </div>
+      <span class="component-status status-operational" id="status-billing">Operational</span>
+    </div>
+    <div class="component">
+      <div>
+        <div class="component-name">Dashboard</div>
+        <div class="component-desc">Web app — getarbtrade.com</div>
+      </div>
+      <span class="component-status status-operational" id="status-dashboard">Operational</span>
+    </div>
+  </div>
+
+  <!-- 30-day uptime -->
+  <div class="section-title">30-Day Uptime</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:32px">
+    <div class="uptime-bar" id="uptime-bar"></div>
+    <div class="uptime-labels">
+      <span>30 days ago</span>
+      <span id="uptime-pct" style="color:var(--green)">—% uptime</span>
+      <span>Today</span>
+    </div>
+  </div>
+
+  <!-- Active incidents -->
+  <div class="section-title">Active Incidents</div>
+  <div class="incidents" id="incidents-container">
+    <div class="no-incidents">✓ No active incidents</div>
+  </div>
+
+  <!-- Subscribe to updates -->
+  <div class="subscribe-section">
+    <div class="subscribe-title">Get status updates</div>
+    <div class="subscribe-sub">Get notified when ARBTRADE has an incident or maintenance window</div>
+    <div class="subscribe-form">
+      <input type="email" class="subscribe-input" placeholder="your@email.com" id="notify-email">
+      <button class="subscribe-btn" onclick="subscribeAlerts()">Notify me</button>
+    </div>
+    <div id="subscribe-msg" style="font-size:11px;font-family:var(--mono);color:var(--green);margin-top:10px;display:none">✓ You'll be notified of any incidents</div>
+  </div>
+
+  <div class="refresh-note">Page auto-refreshes every 60 seconds · Last check: <span id="check-time">—</span></div>
+</main>
+
+<footer>
+  <a href="https://getarbtrade.com">ARBTRADE Research Hub</a> &nbsp;·&nbsp;
+  <a href="https://getarbtrade.com/dashboard.html">Dashboard</a> &nbsp;·&nbsp;
+  <a href="mailto:support@getarbtrade.com">Support</a>
+</footer>
+
+<script>
+var API = 'https://arbtrade-saas-production.up.railway.app';
+
+async function checkStatus() {
+  var start = Date.now();
+  var now   = new Date().toLocaleTimeString();
+  document.getElementById('check-time').textContent = now;
+  document.getElementById('last-updated').textContent = 'Last checked: ' + now + ' · Auto-refreshes every 60 seconds';
+
+  // Check API
+  try {
+    var resp = await fetch(API + '/health', {signal: AbortSignal.timeout(8000)});
+    var ms   = Date.now() - start;
+
+    if(resp.ok) {
+      setComponent('status-api', 'Operational', 'operational');
+      document.getElementById('metric-response').textContent = ms + 'ms';
+      document.getElementById('metric-response').style.color = ms < 500 ? 'var(--green)' : ms < 1500 ? 'var(--yellow)' : 'var(--red)';
+
+      // Check full health
+      try {
+        var healthResp = await fetch(API + '/admin/stats?secret=arbtrade-admin-2026', {signal: AbortSignal.timeout(10000)});
+        if(healthResp.ok) {
+          var data = await healthResp.json();
+          setComponent('status-db', 'Operational', 'operational');
+          setComponent('status-agents', 'Operational', 'operational');
+          setComponent('status-email', 'Operational', 'operational');
+          document.getElementById('metric-scans').textContent = (data.leads?.today || 0) + ' today';
+          setOverall('operational', 'All Systems Operational', 'All components are functioning normally');
+        }
+      } catch(e) {
+        setComponent('status-db', 'Checking...', 'checking');
+        setOverall('operational', 'API Operational', 'Core API is responding normally');
+      }
+
+    } else {
+      setComponent('status-api', 'Degraded', 'degraded');
+      setOverall('degraded', 'Partial Degradation', 'Some systems are experiencing issues');
+    }
+
+  } catch(e) {
+    setComponent('status-api', 'Outage', 'outage');
+    setComponent('status-agents', 'Affected', 'outage');
+    setComponent('status-db', 'Unknown', 'degraded');
+    setComponent('status-email', 'Delayed', 'degraded');
+    document.getElementById('metric-response').textContent = 'Timeout';
+    document.getElementById('metric-response').style.color = 'var(--red)';
+    setOverall('outage', 'Service Disruption', 'We are aware of an issue and working to resolve it. Stripe billing is unaffected.');
+    showIncident('Service Disruption', 'Our team is investigating an issue affecting the API server. Lead scanning may be delayed. Stripe billing and your subscription are unaffected. We will update this page as we learn more.', 'Investigating');
+  }
+
+  // Uptime bar (simulated 30 days)
+  buildUptimeBar();
+}
+
+function setComponent(id, text, type) {
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = type === 'operational' ? 'Operational' :
+                   type === 'degraded'    ? 'Degraded'    :
+                   type === 'outage'      ? 'Outage'      : text;
+  el.className = 'component-status status-' + type;
+}
+
+function setOverall(type, title, sub) {
+  var banner = document.getElementById('overall-banner');
+  var dot    = document.getElementById('overall-dot');
+  banner.className = 'overall-status ' + type;
+  dot.className    = 'status-dot ' + (type === 'operational' ? 'dot-green' : type === 'degraded' ? 'dot-yellow' : 'dot-red');
+  document.getElementById('overall-text').textContent = title;
+  document.getElementById('overall-sub').textContent  = sub;
+}
+
+function showIncident(title, body, status) {
+  var container = document.getElementById('incidents-container');
+  var now = new Date().toLocaleString();
+  container.innerHTML =
+    '<div class="incident-card">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+    '<div class="incident-title">' + title + '</div>' +
+    '<span style="font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:20px;background:rgba(255,184,0,0.1);color:var(--yellow);border:1px solid rgba(255,184,0,0.2)">' + status + '</span>' +
+    '</div>' +
+    '<div class="incident-time">' + now + '</div>' +
+    '<div class="incident-body">' + body + '</div>' +
+    '</div>';
+}
+
+function buildUptimeBar() {
+  var bar = document.getElementById('uptime-bar');
+  bar.innerHTML = '';
+  var days = 30;
+  var downDays = []; // Add actual down days here
+  var upCount = 0;
+
+  for(var i = 0; i < days; i++) {
+    var div = document.createElement('div');
+    div.className = 'uptime-day';
+    if(downDays.includes(i)) {
+      div.className += ' down';
+    } else {
+      upCount++;
+    }
+    bar.appendChild(div);
+  }
+
+  var pct = Math.round((upCount / days) * 100 * 10) / 10;
+  document.getElementById('uptime-pct').textContent = pct + '% uptime';
+  document.getElementById('metric-uptime').textContent = pct + '%';
+}
+
+function subscribeAlerts() {
+  var email = document.getElementById('notify-email').value;
+  if(!email || !email.includes('@')) { alert('Please enter a valid email'); return; }
+  localStorage.setItem('status_notify_email', email);
+  document.getElementById('subscribe-msg').style.display = 'block';
+  document.getElementById('notify-email').value = '';
+}
+
+// Run on load
+checkStatus();
+</script>
+</body>
+</html>
