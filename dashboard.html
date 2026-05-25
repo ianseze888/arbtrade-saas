@@ -740,6 +740,24 @@ var _exp = localStorage.getItem('arbtrade_exp') || 'new';
 var _guideLink = document.getElementById('guide-link');
 if(_guideLink) _guideLink.style.display = _exp === 'new' ? 'flex' : 'none';
 
+
+async function loadReorderAlerts() {
+  try {
+    var resp = await fetch(API+'/skus/alerts', {headers:getHeaders()});
+    if(!resp.ok) return;
+    var data = await resp.json();
+    var el = document.getElementById('reorder-widget');
+    if(el && data.count > 0) {
+      el.style.display = 'block';
+      var list = document.getElementById('reorder-list');
+      if(list) list.innerHTML = data.alerts.slice(0,3).map(function(a){
+        return '<div style="margin-bottom:4px">' + (a.product_name||'').substring(0,35) +
+               ' — <strong style="color:var(--red)">' + a.days_remaining + ' days left</strong></div>';
+      }).join('');
+    }
+  } catch(e) {}
+}
+
 initSession().then(function(){
   loadProfile();
   loadLeads();
