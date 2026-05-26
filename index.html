@@ -195,8 +195,9 @@ footer { border-top: 1px solid rgba(242,239,232,.08); padding: 28px 40px; displa
     <a href="#features">Features</a>
     <a href="#compare">WS vs OA</a>
     <a href="#pricing">Pricing</a>
-    <a href="login.html" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--paper);opacity:.6;text-decoration:none;transition:opacity .2s">Sign in</a>
-    <a href="login.html" class="nav-cta">Get started →</a>
+    <a href="login.html" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--paper);opacity:.6;text-decoration:none;transition:opacity .2s" id="nav-signin">Sign in</a>
+    <a href="dashboard.html" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);text-decoration:none;display:none" id="nav-dashboard">Dashboard →</a>
+    <a href="login.html" class="nav-cta" id="nav-cta">Get started →</a>
   </div>
 </nav>
 
@@ -356,7 +357,7 @@ footer { border-top: 1px solid rgba(242,239,232,.08); padding: 28px 40px; displa
         &#10003; Daily digest email<br>
         &#10003; 1 manual scan/day
       </div>
-      <a href="login.html" style="display:block;margin-top:24px;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.3);color:var(--gold);text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;transition:all .2s">Start 7-day trial</a>
+      <a href="login.html?plan=starter" style="display:block;margin-top:24px;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.3);color:var(--gold);text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;transition:all .2s">Start 7-day trial →</a>
     </div>
 
     <!-- Pro -->
@@ -379,7 +380,7 @@ footer { border-top: 1px solid rgba(242,239,232,.08); padding: 28px 40px; displa
         &#10003; Profit calculator<br>
         &#10003; Supplier CRM
       </div>
-      <a href="login.html" style="display:block;margin-top:24px;background:#3ECFA0;color:#0a0a08;text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;text-transform:uppercase">Start 7-day trial</a>
+      <a href="login.html?plan=pro" style="display:block;margin-top:24px;background:#3ECFA0;color:#0a0a08;text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;text-transform:uppercase">Start 7-day trial →</a>
     </div>
 
     <!-- Agency -->
@@ -401,7 +402,7 @@ footer { border-top: 1px solid rgba(242,239,232,.08); padding: 28px 40px; displa
         &#10003; All Pro features<br>
         &#10003; 3 team seats + API access
       </div>
-      <a href="login.html" style="display:block;margin-top:24px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);color:#4A9EFF;text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase">Start 7-day trial</a>
+      <a href="login.html?plan=agency" style="display:block;margin-top:24px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.3);color:#4A9EFF;text-align:center;padding:12px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase">Start 7-day trial →</a>
     </div>
   </div>
 
@@ -411,7 +412,7 @@ footer { border-top: 1px solid rgba(242,239,232,.08); padding: 28px 40px; displa
       <div style="font-size:14px;font-weight:600;color:var(--paper);margin-bottom:4px">Need more? Custom plan available.</div>
       <div style="font-size:12px;font-family:var(--mono);color:var(--muted)">For high-volume sellers and agencies needing negotiated lead volumes and priority support.</div>
     </div>
-    <a href="mailto:hello@arbtrade.com" style="background:rgba(242,239,232,0.06);border:1px solid rgba(242,239,232,0.15);color:var(--paper);padding:10px 24px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;white-space:nowrap">Contact us →</a>
+    <a href="mailto:hello@getarbtrade.com" style="background:rgba(242,239,232,0.06);border:1px solid rgba(242,239,232,0.15);color:var(--paper);padding:10px 24px;border-radius:4px;text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:.08em;white-space:nowrap">Contact us →</a>
   </div>
 
   <!-- Trial note -->
@@ -512,6 +513,23 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
   });
 });
 </script>
+
+<script>
+// Show dashboard link if user is already logged in
+(function() {
+  var token = localStorage.getItem('arbtrade_token');
+  if(token) {
+    var signin = document.getElementById('nav-signin');
+    var dash   = document.getElementById('nav-dashboard');
+    var cta    = document.getElementById('nav-cta');
+    if(signin) signin.style.display = 'none';
+    if(dash)   dash.style.display = 'inline';
+    if(cta)    cta.textContent = 'Go to dashboard →';
+    if(cta)    cta.href = 'dashboard.html';
+  }
+})();
+</script>
+
 </body>
 </html>
 <!-- MOBILE STYLES - injected -->
