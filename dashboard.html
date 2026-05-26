@@ -189,6 +189,7 @@ button.btn-gold:hover{background:var(--gold2)}
   <div class="nav-item" onclick="nav('criteria')"><span class="nav-icon">⚙</span> Criteria</div>
   <div class="nav-item" onclick="window.location='suppliers.html'"><span class="nav-icon">🏭</span> Suppliers</div>
   <div class="nav-item" onclick="window.location='inventory.html'"><span class="nav-icon">📦</span> Inventory</div>
+  <div class="nav-item" id="owner-nav-item" style="display:none" onclick="nav('owner')"><span class="nav-icon">⚡</span> Owner Panel</div>
   <div class="nav-item" onclick="nav('support');setTimeout(loadTicketHistory,100)"><span class="nav-icon">💬</span> Support</div>
   <div class="nav-item" onclick="nav('billing')"><span class="nav-icon">💳</span> Billing</div>
   <div class="nav-item" onclick="window.location='index.html'"><span class="nav-icon">←</span> Home</div>
@@ -281,8 +282,8 @@ button.btn-gold:hover{background:var(--gold2)}
       <span style="font-size:10px;font-family:var(--mono);color:var(--dim)">Sort:</span>
       <button class="fbtn active" id="sort-new" onclick="setSort('new',this)">📅 Newest</button>
       <button class="fbtn" id="sort-roi" onclick="setSort('roi',this)">📈 ROI</button>
-      <button class="fbtn" id="sort-ian" onclick="setSort('ian',this)">Agent Ian</button>
-      <button class="fbtn" id="sort-ivan" onclick="setSort('ivan',this)">Agent Ivan</button>
+      <button class="fbtn owner-only" id="sort-ian" onclick="setSort('ian',this)" style="display:none">Agent Ian</button>
+      <button class="fbtn owner-only" id="sort-ivan" onclick="setSort('ivan',this)" style="display:none">Agent Ivan</button>
     </div>
     <button class="refresh-btn" onclick="loadLeads()">↺ Refresh</button>
     <span class="fstatus" id="fstatus">—</span>
@@ -417,6 +418,74 @@ button.btn-gold:hover{background:var(--gold2)}
     <div id="ticket-history" style="font-size:12px;font-family:var(--mono);color:var(--muted)">No tickets yet.</div>
   </div>
 </div>
+
+<!-- OWNER SETTINGS PAGE -->
+<div class="page" id="page-owner">
+  <div class="page-title">Owner Control Panel</div>
+  <div class="page-sub">Your personal platform controls — not visible to subscribers</div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Lead Flow Controls</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div>
+        <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Leads per cycle</label>
+        <input id="owner-leads-per-cycle" type="number" min="1" max="50" value="12"
+          style="width:100%;font-size:14px;font-weight:600;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:3px">Default: 12 (Agency). Set up to 50.</div>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Minimum ROI filter %</label>
+        <input id="owner-min-roi" type="number" min="0" max="100" value="0"
+          style="width:100%;font-size:14px;font-weight:600;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:3px">0 = show all. 40 = only show 40%+ ROI.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Manual Scan</div>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 12px">Run a scan right now with any lead count. No daily limit for your account.</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="owner-scan-count" type="number" min="1" max="50" value="20" placeholder="leads"
+        style="width:90px;font-size:13px;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      <button onclick="ownerRunScan(this)" style="padding:9px 18px;background:var(--gold);border:none;border-radius:8px;color:#000;font-weight:700;font-family:var(--sans);font-size:13px;cursor:pointer">⊙ Run scan now</button>
+      <span id="owner-scan-status" style="font-size:12px;font-family:var(--mono);color:var(--muted)"></span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Blacklist</div>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 12px">ASINs or brands that will never appear in your leads.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Blacklisted ASINs</label>
+        <textarea id="owner-blacklist-asins" rows="3" placeholder="B00XXXXX&#10;B00YYYYY"
+          style="width:100%;font-size:12px;font-family:var(--mono);padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);resize:vertical;outline:none"></textarea>
+      </div>
+      <div>
+        <label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Blacklisted brands</label>
+        <textarea id="owner-blacklist-brands" rows="3" placeholder="Brand Name&#10;Another Brand"
+          style="width:100%;font-size:12px;font-family:var(--mono);padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);resize:vertical;outline:none"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">API & Platform Controls</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button onclick="ownerResetApiCounter(this)" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">↺ Reset API counter</button>
+      <button onclick="ownerClearOldLeads(this)" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">🗑 Clear leads older than 90 days</button>
+    </div>
+    <div id="owner-platform-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:8px"></div>
+  </div>
+
+  <div style="display:flex;gap:8px">
+    <button onclick="saveOwnerSettings(this)" style="padding:10px 24px;background:var(--gold);border:none;border-radius:8px;color:#000;font-weight:700;font-family:var(--sans);font-size:13px;cursor:pointer">Save settings</button>
+    <button onclick="loadOwnerSettings()" style="padding:10px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:13px;cursor:pointer">↺ Reload</button>
+  </div>
+  <div id="owner-save-status" style="font-size:12px;font-family:var(--mono);color:var(--green);margin-top:8px"></div>
+</div>
+
 </main>
 </div>
 
@@ -484,7 +553,7 @@ function nav(id) {
     var shell = document.querySelector('.shell');
     if(shell) shell.scrollTop = 0;
   } catch(e) {}
-  var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7};
+  var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7,owner:8};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='results') { setTimeout(function(){ applyFilter(); window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; }, 100); }
   if(id==='scan') loadUsage();
@@ -933,9 +1002,84 @@ initSession().then(function(){
   loadLeads();
   loadReorderAlerts();
   loadOwnerAnalytics();
+  // Show owner panel nav if owner
+  if(userProfile && userProfile.profile && userProfile.profile.email === 'ianseze@gmail.com') {
+    var ownerNav = document.getElementById('owner-nav-item');
+    if(ownerNav) ownerNav.style.display = 'flex';
+    loadOwnerSettings();
+    // Show all owner-only elements
+    document.querySelectorAll('.owner-only').forEach(function(el){
+      el.style.display = '';
+    });
+  }
   handleHashNav();
 });
 setInterval(loadLeads, 300000);
+
+async function loadOwnerSettings() {
+  try {
+    var resp = await fetch(API+'/owner/settings?secret=arbtrade-admin-2026');
+    if(!resp.ok) return;
+    var data = await resp.json();
+    var s = data.settings;
+    document.getElementById('owner-leads-per-cycle').value = s.custom_leads_per_cycle || 12;
+    document.getElementById('owner-min-roi').value = s.min_roi_filter || 0;
+    if(s.blacklist_asins) document.getElementById('owner-blacklist-asins').value = s.blacklist_asins.join('\n');
+    if(s.blacklist_brands) document.getElementById('owner-blacklist-brands').value = s.blacklist_brands.join('\n');
+  } catch(e) { console.error('Owner settings:', e); }
+}
+
+async function saveOwnerSettings(btn) {
+  if(btn) { btn.disabled=true; btn.textContent='Saving...'; }
+  try {
+    var payload = {
+      custom_leads_per_cycle: parseInt(document.getElementById('owner-leads-per-cycle').value)||12,
+      min_roi_filter: parseInt(document.getElementById('owner-min-roi').value)||0,
+      blacklist_asins: document.getElementById('owner-blacklist-asins').value.split('\n').map(function(s){return s.trim()}).filter(Boolean),
+      blacklist_brands: document.getElementById('owner-blacklist-brands').value.split('\n').map(function(s){return s.trim()}).filter(Boolean),
+    };
+    var resp = await fetch(API+'/owner/settings?secret=arbtrade-admin-2026',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    document.getElementById('owner-save-status').textContent = '✓ Saved at '+new Date().toLocaleTimeString();
+    if(btn){btn.disabled=false;btn.textContent='Save settings';}
+  } catch(e) {
+    document.getElementById('owner-save-status').textContent = '❌ '+e.message;
+    if(btn){btn.disabled=false;btn.textContent='Save settings';}
+  }
+}
+
+async function ownerRunScan(btn) {
+  var count = document.getElementById('owner-scan-count').value||20;
+  if(btn){btn.disabled=true;btn.textContent='⊙ Scanning...';}
+  document.getElementById('owner-scan-status').textContent='Running... ~60 seconds';
+  try {
+    var resp = await fetch(API+'/owner/scan-custom?secret=arbtrade-admin-2026&leads='+count,{method:'POST'});
+    var data = await resp.json();
+    document.getElementById('owner-scan-status').textContent='✓ Found '+(data.found||0)+' leads, saved '+(data.saved||0);
+    loadLeads();
+    if(btn){btn.disabled=false;btn.textContent='⊙ Run scan now';}
+  } catch(e) {
+    document.getElementById('owner-scan-status').textContent='❌ '+e.message;
+    if(btn){btn.disabled=false;btn.textContent='⊙ Run scan now';}
+  }
+}
+
+async function ownerResetApiCounter(btn) {
+  try {
+    await fetch(API+'/owner/reset-api-counter?secret=arbtrade-admin-2026',{method:'POST'});
+    document.getElementById('owner-platform-status').textContent='✓ API counter reset';
+  } catch(e){document.getElementById('owner-platform-status').textContent='❌ '+e.message;}
+}
+
+async function ownerClearOldLeads(btn) {
+  if(!confirm('Clear all leads older than 90 days?')) return;
+  try {
+    var resp = await fetch(API+'/owner/leads/clear-old?secret=arbtrade-admin-2026',{method:'DELETE'});
+    var data = await resp.json();
+    document.getElementById('owner-platform-status').textContent='✓ '+data.message;
+    loadLeads();
+  } catch(e){document.getElementById('owner-platform-status').textContent='❌ '+e.message;}
+}
+
 </script>
 <!-- PO Modal -->
 <div id="po-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">

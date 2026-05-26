@@ -417,6 +417,15 @@ def scan_users_for_tier(tier: str):
             if not criteria:
                 criteria = default_criteria()
 
+            # Check for owner custom leads per cycle
+            email = profile.get("email","")
+            if email == OWNER_EMAIL:
+                owner_cfg = criteria.get("owner_config", {})
+                custom_leads = owner_cfg.get("custom_leads_per_cycle")
+                if custom_leads and isinstance(custom_leads, int):
+                    max_leads = custom_leads
+                    log.info("Owner custom leads per cycle: " + str(max_leads))
+
             try:
                 # Run Ian and Ivan in parallel for real verified leads
                 leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads)
@@ -1947,3 +1956,146 @@ async def public_status():
             "error":     str(e),
             "timestamp": datetime.now().isoformat()
         }
+
+# ── Owner Settings & Control Panel ───────────────────────────────────────────
+
+class OwnerSettings(BaseModel):
+    custom_leads_per_cycle: int = None
+    custom_scan_interval:   int = None
+    min_roi_filter:         int = None
+    blacklist_asins:        list = []
+    blacklist_brands:       list = []
+    priority_categories:    list = []
+    auto_approve_threshold: int = None
+
+@app.get("/owner/settings")
+async def get_owner_settings(secret: str = ""):
+    """Get current owner settings."""
+    if secret != os.getenv("ADMIN_SECRET","arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        result = supabase_admin.table("profiles").select("*").eq("email", OWNER_EMAIL).execute()
+        if not result.data:
+            return {"settings": {}}
+        profile = result.data[0]
+        criteria = profile.get("criteria") or {}
+        if isinstance(criteria, str):
+            try: criteria = json.loads(criteria)
+            except: criteria = {}
+        owner_cfg = criteria.get("owner_config", {})
+        return {
+            "settings": {
+                "custom_leads_per_cycle": owner_cfg.get("custom_leads_per_cycle", 12),
+                "custom_scan_interval":   owner_cfg.get("custom_scan_interval", 6),
+                "min_roi_filter":         owner_cfg.get("min_roi_filter", 0),
+                "blacklist_asins":        owner_cfg.get("blacklist_asins", []),
+                "blacklist_brands":       owner_cfg.get("blacklist_brands", []),
+                "priority_categories":    owner_cfg.get("priority_categories", []),
+                "auto_approve_threshold": owner_cfg.get("auto_approve_threshold", None),
+            },
+            "tier_default": 12,
+            "current_api_calls": _api_call_count.get("count", 0),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/owner/settings")
+async def update_owner_settings(settings: OwnerSettings, secret: str = ""):
+    """Update owner settings — custom leads, filters, blacklists."""
+    if secret != os.getenv("ADMIN_SECRET","arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        result = supabase_admin.table("profiles").select("*").eq("email", OWNER_EMAIL).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Owner profile not found")
+
+        profile  = result.data[0]
+        criteria = profile.get("criteria") or {}
+        if isinstance(criteria, str):
+            try: criteria = json.loads(criteria)
+            except: criteria = {}
+
+        # Update owner config
+        owner_cfg = {
+            "custom_leads_per_cycle": settings.custom_leads_per_cycle or 12,
+            "custom_scan_interval":   settings.custom_scan_interval or 6,
+            "min_roi_filter":         settings.min_roi_filter or 0,
+            "blacklist_asins":        settings.blacklist_asins or [],
+            "blacklist_brands":       settings.blacklist_brands or [],
+            "priority_categories":    settings.priority_categories or [],
+            "auto_approve_threshold": settings.auto_approve_threshold,
+        }
+        criteria["owner_config"] = owner_cfg
+
+        supabase_admin.table("profiles").update({
+            "criteria": json.dumps(criteria)
+        }).eq("email", OWNER_EMAIL).execute()
+
+        log.info("Owner settings updated: " + str(owner_cfg))
+        return {"success": True, "settings": owner_cfg}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/owner/scan-custom")
+async def owner_custom_scan(secret: str = "", leads: int = 20):
+    """Run a custom scan with specified lead count — owner only."""
+    if secret != os.getenv("ADMIN_SECRET","arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        if not check_api_rate_limit():
+            return {"error": "API rate limit reached", "calls_used": _api_call_count.get("count",0)}
+        result   = supabase_admin.table("profiles").select("*").eq("email", OWNER_EMAIL).execute()
+        profile  = result.data[0] if result.data else {}
+        criteria = profile.get("criteria") or {}
+        if isinstance(criteria, str):
+            try: criteria = json.loads(criteria)
+            except: criteria = {}
+        user_id  = profile.get("id","")
+        max_l    = min(leads, 50)  # Cap at 50 per scan for cost control
+        results  = run_twin_agents(user_id, criteria, anthropic_client, max_l)
+        saved    = 0
+        for lead in results:
+            try:
+                asin = safe_asin(lead.get("asin",""))
+                supabase_admin.table("leads").insert({
+                    "user_id":        user_id,
+                    "name":           (lead.get("name","")[:200]),
+                    "asin":           asin,
+                    "data":           json.dumps(lead),
+                    "recommendation": lead.get("recommendation","WATCH"),
+                    "roi":            safe_roi(lead.get("roi",0)),
+                    "type":           lead.get("type","wholesale"),
+                    "source":         (lead.get("source","")[:100]),
+                    "found_at":       datetime.now().isoformat(),
+                    "verified":       lead.get("verified", False),
+                }).execute()
+                saved += 1
+            except Exception as ex:
+                log.error("Owner custom scan save error: " + str(ex))
+        return {"success": True, "requested": leads, "found": len(results), "saved": saved}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/owner/reset-api-counter")
+async def reset_api_counter(secret: str = ""):
+    """Reset the API call rate limiter — owner only."""
+    if secret != os.getenv("ADMIN_SECRET","arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    _api_call_count["count"] = 0
+    _api_call_count["reset_time"] = 0
+    return {"success": True, "message": "API counter reset"}
+
+@app.delete("/owner/leads/clear-old")
+async def clear_old_leads(secret: str = "", days: int = 90):
+    """Clear leads older than X days — owner only."""
+    if secret != os.getenv("ADMIN_SECRET","arbtrade-admin-2026"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        from datetime import timedelta
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        result = supabase_admin.table("leads").delete().lt("found_at", cutoff).execute()
+        return {"success": True, "message": f"Cleared leads older than {days} days"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
