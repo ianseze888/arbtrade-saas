@@ -21,7 +21,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
-.shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+.shell{display:grid;grid-template-columns:200px 1fr;height:100vh;overflow:hidden}
 .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
 .logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
@@ -39,7 +39,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .tier-agency{background:rgba(74,158,255,.1);color:var(--ws);border:1px solid rgba(74,158,255,.25)}
 .logout-btn{font-size:11px;font-family:var(--mono);color:var(--dim);background:none;border:none;cursor:pointer;padding:0;text-align:left}
 .logout-btn:hover{color:var(--red)}
-.main{padding:28px 32px;height:100vh;overflow-y:auto;position:relative}
+.main{padding:28px 32px;flex:1;overflow-y:auto;height:100vh}
 .page{display:none;padding-bottom:40px}
 .page.active{display:block}
 .page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
@@ -243,7 +243,12 @@ button.btn-gold:hover{background:var(--gold2)}
   </div>
 </div>
 
-<div class="card-title">Top BUY leads <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="dash-count"></span></div>
+<div id="reorder-widget" style="display:none;background:rgba(255,92,92,0.06);border:1px solid rgba(255,92,92,0.2);border-radius:10px;padding:14px 18px;margin-bottom:16px">
+    <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:6px">⚠ Reorder alerts</div>
+    <div id="reorder-list" style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:8px"></div>
+    <a href="inventory.html" style="font-size:11px;color:var(--red);font-family:var(--mono);text-decoration:none">View inventory monitor →</a>
+  </div>
+  <div class="card-title">Top BUY leads <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="dash-count"></span></div>
     <div id="dash-leads"><div class="loading"><div class="spinner"></div><br>Loading your leads...</div></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -906,5 +911,27 @@ initSession().then(function(){
   loadOwnerAnalytics();
 });
 setInterval(loadLeads, 300000);
-</script></body>
+</script>
+<!-- PO Modal -->
+<div id="po-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px 32px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">✓ Approve Lead</div>
+    <div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:20px" id="po-lead-name"></div>
+    <div style="margin-bottom:12px"><label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase">Supplier name</label><input id="po-supplier" style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none" placeholder="e.g. Quantum Health"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase">Quantity</label><input id="po-qty" type="number" style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none" placeholder="e.g. 24"></div>
+      <div><label style="display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase">Unit cost</label><input id="po-cost" style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none" placeholder="e.g. $8.50"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="generatePO()" style="flex:1;padding:11px;background:var(--oa);border:none;border-radius:8px;color:#0a0a08;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer">Generate PO →</button>
+      <button onclick="document.getElementById('po-modal').style.display='none'" style="padding:11px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:13px;cursor:pointer">Cancel</button>
+    </div>
+    <div id="po-output" style="display:none;margin-top:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-family:var(--mono);color:var(--gold);margin-bottom:8px" id="po-number"></div>
+      <pre id="po-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);white-space:pre-wrap;line-height:1.6"></pre>
+      <button onclick="copyPO()" style="margin-top:10px;background:var(--bg2);border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:var(--mono)">Copy PO</button>
+    </div>
+  </div>
+</div>
+</body>
 </html>
