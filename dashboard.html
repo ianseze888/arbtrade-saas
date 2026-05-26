@@ -39,9 +39,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .tier-agency{background:rgba(74,158,255,.1);color:var(--ws);border:1px solid rgba(74,158,255,.25)}
 .logout-btn{font-size:11px;font-family:var(--mono);color:var(--dim);background:none;border:none;cursor:pointer;padding:0;text-align:left}
 .logout-btn:hover{color:var(--red)}
-.main{padding:28px 32px;height:100vh;overflow-y:auto}
-.page{display:none}
-.page.active{display:block;min-height:100%}
+.main{padding:28px 32px;height:100vh;overflow-y:auto;position:relative}
+.page{display:none;padding-bottom:40px}
+.page.active{display:block}
 .page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
 .page-sub{font-size:12px;color:var(--muted);margin-bottom:24px;font-family:var(--mono)}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
@@ -460,12 +460,16 @@ async function fetchWithAuth(url, options) {
 function nav(id) {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
-  document.getElementById('page-'+id).classList.add('active');
+  var page = document.getElementById('page-'+id);
+  page.classList.add('active');
+  // Always scroll main to top when switching pages
+  document.querySelector('.main').scrollTop = 0;
   var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='results') { setTimeout(function(){ applyFilter(); }, 50); }
   if(id==='scan') loadUsage();
   if(id==='criteria') loadCriteria();
+  if(id==='support') setTimeout(loadTicketHistory, 100);
 }
 
 function logout() {
