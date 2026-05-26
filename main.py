@@ -710,12 +710,21 @@ async def stripe_webhook(request: Request):
         tier = session.get("metadata", {}).get("tier", "starter")
         customer_id = session.get("customer")
         if user_id:
+            # Check if this is a trial
+            sub_status = "trialing" if session.get("subscription") else "active"
+            try:
+                # Get subscription status from Stripe
+                if session.get("subscription"):
+                    sub = stripe.Subscription.retrieve(session["subscription"])
+                    sub_status = sub.status
+            except: pass
             supabase_admin.table("profiles").update({
-                "tier": tier,
-                "stripe_customer_id": customer_id,
-                "subscribed_at": datetime.now().isoformat()
+                "tier":                tier,
+                "stripe_customer_id":  customer_id,
+                "subscription_status": sub_status,
+                "subscribed_at":       datetime.now().isoformat()
             }).eq("id", user_id).execute()
-            log.info(f"User {user_id} upgraded to {tier}")
+            log.info(f"User {user_id} upgraded to {tier} ({sub_status})")
 
     elif event["type"] in ["customer.subscription.deleted", "customer.subscription.paused"]:
         customer_id = event["data"]["object"].get("customer")

@@ -32,3 +32,7 @@ alter table support_tickets enable row level security;
 create policy if not exists "Users can manage own tickets"
   on support_tickets for all
   using (auth.uid() = user_id);
+
+-- Add subscription_status to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscription_status text default 'trial';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS subscribed_at timestamp;

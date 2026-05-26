@@ -21,7 +21,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
-.shell{display:grid;grid-template-columns:200px 1fr;height:100vh}
+.shell{display:grid;grid-template-columns:200px 1fr;height:100vh;overflow:hidden}
 .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
 .logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
 .logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
@@ -580,14 +580,19 @@ function nav(id) {
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
   var page = document.getElementById('page-'+id);
   page.classList.add('active');
-  // Always scroll main to top when switching pages
+  // Scroll to top of page
   try {
-    window.scrollTo(0,0);
+    window.scrollTo({top:0, behavior:'instant'});
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-    document.querySelector('.main').scrollTop = 0;
-    var shell = document.querySelector('.shell');
-    if(shell) shell.scrollTop = 0;
+    var main = document.querySelector('.main');
+    if(main) main.scrollTop = 0;
+    // Force page to top of viewport
+    setTimeout(function(){ 
+      window.scrollTo({top:0, behavior:'instant'});
+      if(main) main.scrollTop = 0;
+      page.style.paddingTop = '0';
+    }, 10);
   } catch(e) {}
   var map={dashboard:0,owner:1,results:2,scan:3,criteria:4,support:7,billing:8};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
@@ -728,9 +733,13 @@ async function loadProfile() {
       loadOwnerSettings();
     }
     document.getElementById('user-email').textContent = email;
-    document.getElementById('tier-badge').textContent = tier;
+    // Show plan name with trial indicator if on trial
+    var subStatus = data.profile ? data.profile.subscription_status : null;
+    var planName = tier.charAt(0).toUpperCase() + tier.slice(1);
+    var displayName = (subStatus === 'trialing' && tier !== 'trial') ? planName + ' Trial' : planName;
+    document.getElementById('tier-badge').textContent = displayName;
     document.getElementById('tier-badge').className = 'tier-badge tier-'+tier;
-    document.getElementById('m-plan').textContent = tier.charAt(0).toUpperCase()+tier.slice(1);
+    document.getElementById('m-plan').textContent = displayName;
     document.getElementById('m-limits').textContent = (data.history_days||7)+' day history';
     document.getElementById('billing-tier').textContent = tier;
   } catch(e) { console.error('Profile error:', e); }
