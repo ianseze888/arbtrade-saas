@@ -919,11 +919,21 @@ async function sendTestDigest(btn) {
 }
 
 
+// Handle URL hash navigation (e.g. dashboard.html#criteria)
+function handleHashNav() {
+  var hash = window.location.hash.replace('#','');
+  var validPages = ['dashboard','results','scan','criteria','billing','support'];
+  if(hash && validPages.indexOf(hash) > -1) {
+    nav(hash);
+  }
+}
+
 initSession().then(function(){
   loadProfile();
   loadLeads();
   loadReorderAlerts();
   loadOwnerAnalytics();
+  handleHashNav();
 });
 setInterval(loadLeads, 300000);
 </script>
