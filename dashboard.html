@@ -184,12 +184,12 @@ button.btn-gold:hover{background:var(--gold2)}
     <div class="logo-name">Research Hub</div>
   </div>
   <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
+  <div class="nav-item" id="owner-nav-item" style="display:none" onclick="nav('owner')"><span class="nav-icon">⚡</span> Owner Panel</div>
   <div class="nav-item" onclick="nav('results')"><span class="nav-icon">≡</span> Results</div>
   <div class="nav-item" onclick="nav('scan')"><span class="nav-icon">⊙</span> Run Scan</div>
   <div class="nav-item" onclick="nav('criteria')"><span class="nav-icon">⚙</span> Criteria</div>
   <div class="nav-item" onclick="window.location='suppliers.html'"><span class="nav-icon">🏭</span> Suppliers</div>
   <div class="nav-item" onclick="window.location='inventory.html'"><span class="nav-icon">📦</span> Inventory</div>
-  <div class="nav-item" id="owner-nav-item" style="display:none" onclick="nav('owner')"><span class="nav-icon">⚡</span> Owner Panel</div>
   <div class="nav-item" onclick="nav('support');setTimeout(loadTicketHistory,100)"><span class="nav-icon">💬</span> Support</div>
   <div class="nav-item" onclick="nav('billing')"><span class="nav-icon">💳</span> Billing</div>
   <div class="nav-item" onclick="window.location='index.html'"><span class="nav-icon">←</span> Home</div>
@@ -479,6 +479,42 @@ button.btn-gold:hover{background:var(--gold2)}
     <div id="owner-platform-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:8px"></div>
   </div>
 
+  <!-- PRIORITY CATEGORIES -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Priority Categories</div>
+    <div style="font-size:12px;color:var(--muted);margin:8px 0 12px">Categories Agent Ian and Ivan prioritize first in each scan cycle.</div>
+    <textarea id="owner-priority-cats" rows="3" placeholder="Health &amp; Household&#10;Grocery &amp; Gourmet Food&#10;Baby"
+      style="width:100%;font-size:12px;font-family:var(--mono);padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);resize:vertical;outline:none"></textarea>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:3px">One category per line. Leave empty to use full rotation.</div>
+  </div>
+
+  <!-- AGENT ANALYTICS SUMMARY -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">Agent Performance</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div style="background:var(--bg3);border:1px solid rgba(200,169,110,0.15);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--gold);font-family:var(--mono);margin-bottom:6px">● Agent Ian</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="owner-ian-summary">Loading...</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid rgba(62,207,160,0.15);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--oa);font-family:var(--mono);margin-bottom:6px">● Agent Ivan</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="owner-ivan-summary">Loading...</div>
+      </div>
+    </div>
+    <button onclick="loadAgentAnalytics()" style="margin-top:10px;padding:7px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--muted);font-family:var(--sans);font-size:11px;cursor:pointer">↺ Refresh analytics</button>
+  </div>
+
+  <!-- PLATFORM CONTROLS -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-title">API &amp; Platform Controls</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button onclick="ownerResetApiCounter(this)" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">↺ Reset API counter</button>
+      <button onclick="ownerClearOldLeads(this)" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">🗑 Clear leads older than 90 days</button>
+      <button onclick="triggerDigest(this)" style="padding:8px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">✉ Send test digest</button>
+    </div>
+    <div id="owner-platform-status" style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:8px"></div>
+  </div>
+
   <div style="display:flex;gap:8px">
     <button onclick="saveOwnerSettings(this)" style="padding:10px 24px;background:var(--gold);border:none;border-radius:8px;color:#000;font-weight:700;font-family:var(--sans);font-size:13px;cursor:pointer">Save settings</button>
     <button onclick="loadOwnerSettings()" style="padding:10px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:13px;cursor:pointer">↺ Reload</button>
@@ -553,7 +589,7 @@ function nav(id) {
     var shell = document.querySelector('.shell');
     if(shell) shell.scrollTop = 0;
   } catch(e) {}
-  var map={dashboard:0,results:1,scan:2,criteria:3,support:6,billing:7,owner:8};
+  var map={dashboard:0,owner:1,results:2,scan:3,criteria:4,support:7,billing:8};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='results') { setTimeout(function(){ applyFilter(); window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; }, 100); }
   if(id==='scan') loadUsage();
@@ -1015,6 +1051,7 @@ initSession().then(function(){
 setInterval(loadLeads, 300000);
 
 async function loadOwnerSettings() {
+  loadAgentAnalytics();
   try {
     var resp = await fetch(API+'/owner/settings?secret=arbtrade-admin-2026');
     if(!resp.ok) return;
@@ -1076,6 +1113,36 @@ async function ownerClearOldLeads(btn) {
     document.getElementById('owner-platform-status').textContent='✓ '+data.message;
     loadLeads();
   } catch(e){document.getElementById('owner-platform-status').textContent='❌ '+e.message;}
+}
+
+
+async function loadAgentAnalytics() {
+  try {
+    var resp = await fetch(API+'/owner/analytics?secret=arbtrade-admin-2026');
+    if(!resp.ok) return;
+    var data = await resp.json();
+    var ian = data.agent_ian || {};
+    var ivan = data.agent_ivan || {};
+    document.getElementById('owner-ian-summary').innerHTML =
+      'Leads: ' + (ian.count||0) + '<br>Avg ROI: ' + (ian.avg_roi||0) + '%<br>BUY rate: ' + (ian.buy_rate||0) + '%';
+    document.getElementById('owner-ivan-summary').innerHTML =
+      'Leads: ' + (ivan.count||0) + '<br>Avg ROI: ' + (ivan.avg_roi||0) + '%<br>BUY rate: ' + (ivan.buy_rate||0) + '%';
+  } catch(e) {
+    document.getElementById('owner-ian-summary').textContent = 'Error loading';
+    document.getElementById('owner-ivan-summary').textContent = 'Error loading';
+  }
+}
+
+async function triggerDigest(btn) {
+  if(btn) { btn.disabled=true; btn.textContent='Sending...'; }
+  try {
+    var resp = await fetch(API+'/digest/send-test', {method:'POST', headers:getHeaders()});
+    document.getElementById('owner-platform-status').textContent = '✓ Test digest sent — check your email';
+    if(btn) { btn.disabled=false; btn.textContent='✉ Send test digest'; }
+  } catch(e) {
+    document.getElementById('owner-platform-status').textContent = '❌ ' + e.message;
+    if(btn) { btn.disabled=false; btn.textContent='✉ Send test digest'; }
+  }
 }
 
 </script>
