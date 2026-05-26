@@ -684,6 +684,13 @@ async function loadProfile() {
     userProfile = data;
     var email = data.user?.email || '';
     var tier = data.tier || 'trial';
+    // Show owner-only elements if this is the owner account
+    if(email === 'ianseze@gmail.com' || (data.profile && data.profile.email === 'ianseze@gmail.com')) {
+      var ownerNav = document.getElementById('owner-nav-item');
+      if(ownerNav) ownerNav.style.display = 'flex';
+      document.querySelectorAll('.owner-only').forEach(function(el){ el.style.display = ''; });
+      loadOwnerSettings();
+    }
     document.getElementById('user-email').textContent = email;
     document.getElementById('tier-badge').textContent = tier;
     document.getElementById('tier-badge').className = 'tier-badge tier-'+tier;
@@ -1002,16 +1009,7 @@ initSession().then(function(){
   loadLeads();
   loadReorderAlerts();
   loadOwnerAnalytics();
-  // Show owner panel nav if owner
-  if(userProfile && userProfile.profile && userProfile.profile.email === 'ianseze@gmail.com') {
-    var ownerNav = document.getElementById('owner-nav-item');
-    if(ownerNav) ownerNav.style.display = 'flex';
-    loadOwnerSettings();
-    // Show all owner-only elements
-    document.querySelectorAll('.owner-only').forEach(function(el){
-      el.style.display = '';
-    });
-  }
+
   handleHashNav();
 });
 setInterval(loadLeads, 300000);
