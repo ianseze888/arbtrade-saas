@@ -39,8 +39,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .tier-agency{background:rgba(74,158,255,.1);color:var(--ws);border:1px solid rgba(74,158,255,.25)}
 .logout-btn{font-size:11px;font-family:var(--mono);color:var(--dim);background:none;border:none;cursor:pointer;padding:0;text-align:left}
 .logout-btn:hover{color:var(--red)}
-.main{padding:28px 32px;overflow-y:auto}
-.page{display:none}.page.active{display:block}
+.main{padding:28px 32px;height:100vh;overflow-y:auto}
+.page{display:none}
+.page.active{display:block;min-height:100%}
 .page-title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
 .page-sub{font-size:12px;color:var(--muted);margin-bottom:24px;font-family:var(--mono)}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
