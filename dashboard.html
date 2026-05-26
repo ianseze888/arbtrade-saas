@@ -618,7 +618,12 @@ function getRisks(val) {
   return [String(val)];
 }
 
+var _leadMap = {};
+var _leadIdx = 0;
+
 function renderCard(l) {
+  var leadKey = 'lead_' + (_leadIdx++);
+  _leadMap[leadKey] = l;
   var roi=l.roi||'—';
   var roiNum=getRoi(roi);
   var roiColor=roiNum>=40?'var(--green)':roiNum>=30?'var(--gold)':'var(--red)';
@@ -642,9 +647,9 @@ function renderCard(l) {
       (l.reason?'<div class="lead-reason">→ '+l.reason+'</div>':'') +
       '<div class="tags">'+typeBadge+agentBadge+risks+'</div>'
   +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
-  +'<button onclick="openSourcingModal('+JSON.stringify(l)+')" style="font-size:11px;font-family:var(--mono);color:var(--gold);background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">→ How to source</button>'
+  +'<button onclick="openSourcingModal(_leadMap[\''+leadKey+'\'])" style="font-size:11px;font-family:var(--mono);color:var(--gold);background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">→ How to source</button>'
   +(l.asin && l.asin.length===10 && l.asin[0]==='B' && l.asin !== 'B00XXXXX' && l.asin !== 'B0EXAMPLE' ? '<a href="https://www.amazon.com/dp/'+l.asin+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>' : '<a href="https://www.amazon.com/s?k='+encodeURIComponent(l.name||'')+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>')
-  +'<button onclick="openApproveModal('+JSON.stringify(l)+')" style="font-size:11px;font-family:var(--mono);color:var(--green);background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">✓ Approve</button>'
+  +'<button onclick="openApproveModal(_leadMap[\''+leadKey+'\'])" style="font-size:11px;font-family:var(--mono);color:var(--green);background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">✓ Approve</button>'
   +'</div>' +
     '</div>' +
     '<div class="lead-right">' +
