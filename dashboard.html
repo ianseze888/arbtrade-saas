@@ -1273,10 +1273,12 @@ function openSourcingModal(lead) {
     ? 'https://www.amazon.com/dp/' + lead.asin
     : 'https://www.amazon.com/s?k=' + encodeURIComponent(lead.name || '');
 
+  // Store current lead for approve button
+  window._currentSourcingLead = lead;
   document.getElementById('sourcing-actions').innerHTML =
     '<a href="' + amazonUrl + '" target="_blank" style="flex:1;text-align:center;padding:9px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;color:var(--ws);text-decoration:none;font-size:12px;font-family:var(--mono)">↗ View on Amazon</a>' +
-    '<button onclick="openApproveModal(' + JSON.stringify(lead) + ');document.getElementById(\'sourcing-modal\').style.display=\'none\'" style="flex:1;padding:9px;background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);border-radius:8px;color:var(--oa);font-family:var(--sans);font-size:12px;cursor:pointer">✓ Approve lead</button>' +
-    '<button onclick="document.getElementById(\'sourcing-modal\').style.display=\'none\'" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">Close</button>';
+    '<button onclick="openApproveModal(window._currentSourcingLead);document.getElementById('sourcing-modal').style.display='none'" style="flex:1;padding:9px;background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);border-radius:8px;color:var(--oa);font-family:var(--sans);font-size:12px;cursor:pointer">✓ Approve lead</button>' +
+    '<button onclick="document.getElementById('sourcing-modal').style.display='none'" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">Close</button>';
 
   document.getElementById('sourcing-modal').style.display = 'flex';
 }
