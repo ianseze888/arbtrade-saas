@@ -1256,6 +1256,82 @@ function approveSourcingLead() {
 }
 
 function openSourcingModal(lead) {
+  var source = lead.source || "";
+  var type   = lead.type || "wholesale";
+  var key    = getRetailerKey(source) || (type === "oa" ? "default_oa" : "default_ws");
+  var data   = RETAILER_DATA[key];
+  if(!data) return;
+
+  window._currentSourcingLead = lead;
+
+  document.getElementById("sourcing-product-name").textContent = lead.name || "—";
+  document.getElementById("sourcing-type-label").textContent   = type === "oa" ? "Online Arbitrage" : "Wholesale";
+
+  // Source link - safe DOM creation
+  var linkDiv = document.getElementById("sourcing-source-link");
+  linkDiv.innerHTML = "";
+  var searchUrl = data.search_url + encodeURIComponent(lead.name || "");
+  var a = document.createElement("a");
+  a.href = searchUrl;
+  a.target = "_blank";
+  a.textContent = "Search on " + data.name;
+  a.style.cssText = "display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);color:var(--gold);text-decoration:none;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:6px 12px;border-radius:20px";
+  linkDiv.appendChild(a);
+
+  // Steps - safe DOM creation
+  var stepsDiv = document.getElementById("sourcing-steps");
+  stepsDiv.innerHTML = "";
+  data.steps.forEach(function(step) {
+    var d = document.createElement("div");
+    d.textContent = step;
+    d.style.cssText = "padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--muted)";
+    stepsDiv.appendChild(d);
+  });
+
+  // Tips
+  document.getElementById("sourcing-tips").textContent = data.tips || "";
+
+  // Amazon URL
+  var amazonUrl = (lead.asin && lead.asin.length === 10 && lead.asin[0] === "B")
+    ? "https://www.amazon.com/dp/" + lead.asin
+    : "https://www.amazon.com/s?k=" + encodeURIComponent(lead.name || "");
+
+  // Action buttons - safe DOM creation
+  var actionsDiv = document.getElementById("sourcing-actions");
+  actionsDiv.innerHTML = "";
+
+  var btnAmazon = document.createElement("a");
+  btnAmazon.href = amazonUrl;
+  btnAmazon.target = "_blank";
+  btnAmazon.textContent = "View on Amazon";
+  btnAmazon.style.cssText = "flex:1;text-align:center;padding:9px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;color:var(--ws);text-decoration:none;font-size:12px;font-family:var(--mono)";
+  actionsDiv.appendChild(btnAmazon);
+
+  var btnApprove = document.createElement("button");
+  btnApprove.textContent = "Approve lead";
+  btnApprove.style.cssText = "flex:1;padding:9px;background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);border-radius:8px;color:var(--oa);font-family:var(--sans);font-size:12px;cursor:pointer";
+  btnApprove.onclick = function() { approveSourcingLead(); };
+  actionsDiv.appendChild(btnApprove);
+
+  var btnClose = document.createElement("button");
+  btnClose.textContent = "Close";
+  btnClose.style.cssText = "padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer";
+  btnClose.onclick = function() { closeSourcingModal(); };
+  actionsDiv.appendChild(btnClose);
+
+  document.getElementById("sourcing-modal").style.display = "flex";
+}
+
+function closeSourcingModal() {
+  document.getElementById('sourcing-modal').style.display = 'none';
+}
+
+function approveSourcingLead() {
+  closeSourcingModal();
+  if(window._currentSourcingLead) openApproveModal(window._currentSourcingLead);
+}
+
+function openSourcingModal(lead) {
   var source = lead.source || '';
   var type   = lead.type || 'wholesale';
   var key    = getRetailerKey(source) || (type === 'oa' ? 'default_oa' : 'default_ws');
