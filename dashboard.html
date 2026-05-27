@@ -1218,7 +1218,7 @@ var RETAILER_DATA = {
   },
   'default_ws': {
     name: 'Wholesale Supplier',
-    steps: ['1. Search for the brand's official website', '2. Look for "Wholesale" or "Trade" account application', '3. Apply with your Amazon seller/business details', '4. Request a price list and MOQ information', '5. Ask about drop shipping if available', '6. Join RangeMe.com to discover more brands'],
+    steps: ["1. Search for the brand's official website", '2. Look for "Wholesale" or "Trade" account application', '3. Apply with your Amazon seller/business details', '4. Request a price list and MOQ information', '5. Ask about drop shipping if available', '6. Join RangeMe.com to discover more brands'],
     tips: '💡 Most brands require business license + resale certificate. Keep these ready to speed up approval.',
     search_url: 'https://www.google.com/search?q='
   },
@@ -1244,6 +1244,15 @@ function getRetailerKey(source) {
   if(s.includes('faire')) return 'faire';
   if(s.includes('wholesale') || s.includes('distributor') || s.includes('supplier')) return 'default_ws';
   return null;
+}
+
+function closeSourcingModal() {
+  document.getElementById('sourcing-modal').style.display = 'none';
+}
+
+function approveSourcingLead() {
+  closeSourcingModal();
+  if(window._currentSourcingLead) openApproveModal(window._currentSourcingLead);
 }
 
 function openSourcingModal(lead) {
@@ -1277,8 +1286,8 @@ function openSourcingModal(lead) {
   window._currentSourcingLead = lead;
   document.getElementById('sourcing-actions').innerHTML =
     '<a href="' + amazonUrl + '" target="_blank" style="flex:1;text-align:center;padding:9px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;color:var(--ws);text-decoration:none;font-size:12px;font-family:var(--mono)">↗ View on Amazon</a>' +
-    '<button onclick="openApproveModal(window._currentSourcingLead);document.getElementById('sourcing-modal').style.display='none'" style="flex:1;padding:9px;background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);border-radius:8px;color:var(--oa);font-family:var(--sans);font-size:12px;cursor:pointer">✓ Approve lead</button>' +
-    '<button onclick="document.getElementById('sourcing-modal').style.display='none'" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">Close</button>';
+    '<button onclick="approveSourcingLead()" style="flex:1;padding:9px;background:rgba(62,207,160,0.08);border:1px solid rgba(62,207,160,0.2);border-radius:8px;color:var(--oa);font-family:var(--sans);font-size:12px;cursor:pointer">&#10003; Approve lead</button>' +
+    '<button onclick="closeSourcingModal()" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">Close</button>';
 
   document.getElementById('sourcing-modal').style.display = 'flex';
 }
