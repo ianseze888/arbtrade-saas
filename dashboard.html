@@ -26,7 +26,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .logo{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
 .logo-mark{font-size:10px;font-family:var(--mono);color:var(--gold);letter-spacing:.1em;margin-bottom:3px}
 .logo-name{font-size:15px;font-weight:700;letter-spacing:-.02em}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .15s;border-left:2px solid transparent}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:color .1s,background .1s,border-color .1s;border-left:2px solid transparent;user-select:none}
 .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
 .nav-item.active{color:var(--text);border-left-color:var(--gold);background:rgba(200,169,110,.05)}
 .nav-icon{font-size:14px;width:16px;text-align:center}
@@ -576,24 +576,17 @@ async function fetchWithAuth(url, options) {
 }
 
 function nav(id) {
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
-  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  // Show target page
   var page = document.getElementById('page-'+id);
+  if(!page) return;
   page.classList.add('active');
-  // Scroll to top of page
-  try {
-    window.scrollTo({top:0, behavior:'instant'});
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-    var main = document.querySelector('.main');
-    if(main) main.scrollTop = 0;
-    // Force page to top of viewport
-    setTimeout(function(){ 
-      window.scrollTo({top:0, behavior:'instant'});
-      if(main) main.scrollTop = 0;
-      page.style.paddingTop = '0';
-    }, 10);
-  } catch(e) {}
+  // Reset scroll instantly
+  var main = document.querySelector('.main');
+  if(main) main.scrollTop = 0;
+  window.scrollTo(0, 0);
   var map={dashboard:0,owner:1,results:2,scan:3,criteria:4,support:7,billing:8};
   if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
   if(id==='results') { setTimeout(function(){ applyFilter(); window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; }, 100); }
