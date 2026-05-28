@@ -623,6 +623,7 @@ function renderCard(l) {
   var typeClass=l.type==='oa'?'oa-card':'ws-card';
   var typeBadge=l.type==='oa'?'<span class="tag tag-oa">OA</span>':'<span class="tag tag-ws">WS</span>';
   var isOwner=(userProfile&&userProfile.profile&&userProfile.profile.email==='ianseze@gmail.com');
+  var keepaBadge=l.keepa_verified?'<span style="font-size:9px;font-family:var(--mono);color:#3ECFA0;opacity:.8;margin-left:3px" title="Verified with real Amazon data">&#10003; VERIFIED</span>':'';
   var agentBadge=isOwner?(l.agent==='Agent Ian'?'<span style="font-size:9px;font-family:var(--mono);color:var(--gold);opacity:.6;margin-left:3px">&#11044; IAN</span>':l.agent==='Agent Ivan'?'<span style="font-size:9px;font-family:var(--mono);color:var(--oa);opacity:.6;margin-left:3px">&#11044; IVAN</span>':''):'';
   var recClass=l.recommendation==='BUY'?'rec-buy':l.recommendation==='WATCH'?'rec-watch':'rec-pass';
   var risks=getRisks(l.risk_flags).map(function(r){return '<span class="tag tag-risk">'+r+'</span>'}).join('');
@@ -638,7 +639,7 @@ function renderCard(l) {
         '<span>Sellers: <strong>'+(l.sellers||'—')+'</strong></span>' +
       '</div>' +
       (l.reason?'<div class="lead-reason">→ '+l.reason+'</div>':'') +
-      '<div class="tags">'+typeBadge+agentBadge+risks+'</div>'
+      '<div class="tags">'+typeBadge+keepaBadge+agentBadge+risks+'</div>'
   +'<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'
   +'<button onclick="openSourcingModal(_leadMap[\''+leadKey+'\'])" style="font-size:11px;font-family:var(--mono);color:var(--gold);background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:3px 10px;border-radius:20px;cursor:pointer">→ How to source</button>'
   +(l.asin && l.asin.length===10 && l.asin[0]==='B' && l.asin !== 'B00XXXXX' && l.asin !== 'B0EXAMPLE' ? '<a href="https://www.amazon.com/dp/'+l.asin+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>' : '<a href="https://www.amazon.com/s?k='+encodeURIComponent(l.name||'')+'" target="_blank" style="font-size:11px;font-family:var(--mono);color:var(--ws);text-decoration:none;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);padding:3px 10px;border-radius:20px">↗ Amazon</a>')

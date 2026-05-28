@@ -429,6 +429,16 @@ def scan_users_for_tier(tier: str):
             try:
                 # Run Ian and Ivan in parallel for real verified leads
                 leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads)
+
+                # Keepa verification — enrich leads with real Amazon data
+                if leads and keepa_available():
+                    try:
+                        log.info("Keepa: verifying " + str(len(leads)) + " leads for user " + str(user_id or "")[:8])
+                        leads = verify_leads_batch_keepa(leads, "US", delay=1.0)
+                        log.info("Keepa: verification complete")
+                    except Exception as ke:
+                        log.error("Keepa verification error: " + str(ke))
+
                 if leads:
                     loop = _asyncio.new_event_loop()
                     loop.run_until_complete(save_leads_for_user(user_id, leads, tier))
