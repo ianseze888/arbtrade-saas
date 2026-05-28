@@ -100,7 +100,7 @@ def build_lead_card(lead, index):
         '</div>'
     )
 
-def build_email_html(user_email, leads, tier):
+def build_email_html(user_email, leads, tier, market_pulse_html=''):
     today      = datetime.now().strftime("%B %d, %Y")
     buy_leads  = [l for l in leads if l.get("recommendation") == "BUY"]
     watch_leads= [l for l in leads if l.get("recommendation") == "WATCH"]
@@ -212,6 +212,15 @@ def build_email_html(user_email, leads, tier):
         '</td>'
         '</tr></table>'
         '<div style="margin-top:12px;font-size:10px;color:#3a3832;font-family:monospace;line-height:1.6">'
+        '<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:0">'
+        '<tr><td style="padding:0 32px 24px">'
+        '<div style="background:#1a1d20;border-radius:12px;padding:20px 24px">'
+        '<div style="font-size:10px;font-family:monospace;color:#c8a96e;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">'
+        '&#9670; MARKET PULSE · ' + datetime.now().strftime('%B %d').upper() + '</div>'
+        + market_pulse_html +
+        '</div>'
+        '</td></tr></table>'
+
         'ROI estimates are based on AI analysis. Always verify before ordering. '
         'ARBTRADE provides research data only, not financial advice.'
         '</div>'
@@ -232,7 +241,16 @@ def send_digest(user_email, leads, tier):
     try:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
-        html      = build_email_html(user_email, leads, tier)
+        # Generate market pulse for Pro and Agency
+        market_pulse = ''
+        if tier in ['pro','agency','custom']:
+            try:
+                from market_intel_agent import run_market_intel, format_intel_for_digest
+                intel = run_market_intel(ai_client, ['US']) if ai_client else {}
+                market_pulse = format_intel_for_digest(intel) if intel else ''
+            except Exception as me:
+                log.error('Market intel for digest error: ' + str(me))
+        html      = build_email_html(user_email, leads, tier, market_pulse)
         buy_count = sum(1 for l in leads if l.get("recommendation") == "BUY")
         best_roi  = get_best_roi(leads)
         # Personalized subject line based on best lead

@@ -860,7 +860,7 @@ async def send_test_digest(user=Depends(get_current_user)):
         leads = [json.loads(r["data"]) for r in (result.data or [])]
         profile = await get_user_profile(user.id)
         tier = profile.get("tier","trial") if profile else "trial"
-        success = send_digest(user.email, leads, tier)
+        success = send_digest(user.email, leads, tier, anthropic_client)
         if success:
             return {"message": f"Test digest sent to {user.email}"}
         else:
@@ -882,7 +882,7 @@ def send_daily_digests_job():
             result = supabase_admin.table("leads").select("data,recommendation,roi").eq("user_id",user_id).gte("found_at",cutoff).order("roi",desc=True).limit(10).execute()
             leads = [json.loads(r["data"]) for r in (result.data or [])]
             if email and leads:
-                send_digest(email, leads, tier)
+                send_digest(email, leads, tier, anthropic_client)
                 time.sleep(1)
         log.info("Daily digest job complete")
     except Exception as e:
