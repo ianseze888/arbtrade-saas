@@ -1155,6 +1155,56 @@ async function triggerDigest(btn) {
 
 
 // Retailer sourcing data
+// Known wholesale marketplace URLs
+var WHOLESALE_SOURCES = {
+  'faire':      'https://www.faire.com/search?q=',
+  'rangeme':    'https://www.rangeme.com/products?q=',
+  'tundra':     'https://www.tundra.com/search?q=',
+  'abound':     'https://www.abound.com/search?q=',
+  'creoate':    'https://www.creoate.com/en/search?q=',
+  'wholesale central': 'https://www.wholesalecentral.com/search.cfm?search=',
+  'unfi':       'https://www.unfi.com/brands?q=',
+  'kehe':       'https://www.kehe.com/brands?q=',
+  'dot foods':  'https://www.dotfoods.com/products?q=',
+  'mclane':     'https://www.mclaneco.com/content/products?q=',
+  'chewy':      'https://www.chewy.com/s?query=',
+  'petco':      'https://www.petco.com/shop/en/petcostore/category/search-results?q=',
+};
+
+function getSupplierUrl(lead) {
+  var source = (lead.source || '').toLowerCase();
+  var name   = lead.name || '';
+  var brand  = name.split(' ')[0] || '';
+
+  // Check known wholesale marketplaces
+  for(var key in WHOLESALE_SOURCES) {
+    if(source.includes(key)) {
+      return {
+        url:   WHOLESALE_SOURCES[key] + encodeURIComponent(name),
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        type:  'marketplace'
+      };
+    }
+  }
+
+  // Try brand direct wholesale page
+  var brandSlug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if(brandSlug.length > 2) {
+    return {
+      url:   'https://www.' + brandSlug + '.com/wholesale',
+      label: brand + ' Wholesale',
+      type:  'brand'
+    };
+  }
+
+  // Fallback to Google search
+  return {
+    url:   'https://www.google.com/search?q=' + encodeURIComponent(name + ' wholesale supplier'),
+    label: 'Find Supplier',
+    type:  'search'
+  };
+}
+
 var RETAILER_DATA = {
   'walmart': {
     name: 'Walmart',
@@ -1300,6 +1350,22 @@ function openSourcingModal(lead) {
   btnAmazon.textContent = "View on Amazon";
   btnAmazon.style.cssText = "flex:1;text-align:center;padding:9px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;color:var(--ws);text-decoration:none;font-size:12px;font-family:var(--mono)";
   actionsDiv.appendChild(btnAmazon);
+
+  // Add supplier button for wholesale leads
+  if(type === "wholesale") {
+    var supplierInfo = getSupplierUrl(lead);
+    var btnSupplier  = document.createElement("a");
+    btnSupplier.href   = supplierInfo.url;
+    btnSupplier.target = "_blank";
+    btnSupplier.textContent = supplierInfo.type === "marketplace"
+      ? "→ Find on " + supplierInfo.label
+      : supplierInfo.type === "brand"
+      ? "→ " + supplierInfo.label
+      : "→ Find Supplier";
+    btnSupplier.style.cssText = "flex:1;text-align:center;padding:9px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:8px;color:var(--gold);text-decoration:none;font-size:12px;font-family:var(--mono);font-weight:600";
+    btnSupplier.title = "Opens supplier page for " + (lead.name || "this product");
+    actionsDiv.appendChild(btnSupplier);
+  }
 
   var btnApprove = document.createElement("button");
   btnApprove.textContent = "Approve lead";
