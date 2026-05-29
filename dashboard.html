@@ -1191,15 +1191,15 @@ function getSupplierUrl(lead) {
   var brandSlug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
   if(brandSlug.length > 2) {
     return {
-      url:   'https://www.' + brandSlug + '.com/wholesale',
-      label: brand + ' Wholesale',
+      url:   'https://www.google.com/search?q=' + encodeURIComponent(brand + ' wholesale distributor authorized reseller'),
+      label: brand + ' Supplier',
       type:  'brand'
     };
   }
 
   // Fallback to Google search
   return {
-    url:   'https://www.google.com/search?q=' + encodeURIComponent(name + ' wholesale supplier'),
+    url:   'https://www.google.com/search?q=' + encodeURIComponent(name + ' wholesale distributor buy bulk'),
     label: 'Find Supplier',
     type:  'search'
   };
