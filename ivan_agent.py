@@ -11,7 +11,7 @@ Runs in parallel with Ian to maximize market coverage.
 import logging
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 
 log = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ def build_ivan_oa_prompt(user_id: str, criteria: dict) -> str:
 def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
     """Run Ivan's research scan — returns real verified leads."""
     leads = []
-    now   = datetime.now().isoformat()
+    now   = datetime.now(timezone.utc).isoformat()
 
     def extract_text(content):
         """Extract text from API response including web search blocks."""

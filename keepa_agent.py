@@ -21,7 +21,7 @@ import json
 import logging
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
             "price_stable":    price_stable,
             "image_url":       image_url,
             "keepa_verified":  True,
-            "verified_at":     datetime.now().isoformat(),
+            "verified_at":     datetime.now(timezone.utc).isoformat(),
             "amazon_url":      f"https://www.amazon.com/dp/{asin}",
         }
 

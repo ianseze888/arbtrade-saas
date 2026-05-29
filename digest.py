@@ -6,7 +6,7 @@ ARBTRADE Daily Digest Email System
 import os
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 log = logging.getLogger(__name__)
 

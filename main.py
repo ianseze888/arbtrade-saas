@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 import os, json, asyncio, logging, schedule, time, threading, subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -252,7 +252,7 @@ def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
         raw = "".join(b.text for b in resp.content if hasattr(b,"text"))
         ws_leads = extract_json(raw) or []
         for l in ws_leads:
-            l["found_at"] = datetime.now().isoformat()
+            l["found_at"] = datetime.now(timezone.utc).isoformat()
             l["user_id"] = user_id
             leads.append(normalize_lead(l))
         log.info(f"User {user_id}: {len(ws_leads)} wholesale leads")
@@ -281,7 +281,7 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
                 "recommendation": lead.get("recommendation",""),
                 "roi":            safe_roi(lead.get("roi",0)),
                 "type":           lead.get("type","wholesale"),
-                "found_at":       lead.get("found_at", datetime.now().isoformat()),
+                "found_at":       lead.get("found_at", datetime.now(timezone.utc).isoformat()),
             }).execute()
     except Exception as e:
         log.error(f"Failed to save leads for {user_id}: {e}")
@@ -516,7 +516,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "time": datetime.now().isoformat()}
+    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
 
 # Auth
 @app.post("/auth/signup")
@@ -530,7 +530,7 @@ async def signup(req: SignupRequest):
                 "email": req.email,
                 "tier":  "trial",
                 "criteria": json.dumps({}),
-                "created_at": datetime.now().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }).execute()
         return {"user": result.user, "session": result.session}
     except Exception as e:
@@ -632,7 +632,7 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
             "wholesale_count": ws_count,
             "oa_count": oa_count,
             "best_roi": best_roi,
-            "last_run": datetime.now().isoformat(),
+            "last_run": datetime.now(timezone.utc).isoformat(),
             "tier": tier,
             "history_days": history_days,
             "display_limit": display_limit
@@ -732,7 +732,7 @@ async def stripe_webhook(request: Request):
                 "tier":                tier,
                 "stripe_customer_id":  customer_id,
                 "subscription_status": sub_status,
-                "subscribed_at":       datetime.now().isoformat()
+                "subscribed_at":       datetime.now(timezone.utc).isoformat()
             }).eq("id", user_id).execute()
             log.info(f"User {user_id} upgraded to {tier} ({sub_status})")
 
@@ -783,7 +783,7 @@ async def approve_lead(index: int, name: str, user_id: str = "", request: Reques
         try:
             supabase_admin.table("leads").update({
                 "approved": True,
-                "approved_at": datetime.now().isoformat()
+                "approved_at": datetime.now(timezone.utc).isoformat()
             }).eq("user_id", user_id).ilike("name", "%" + name[:20] + "%").execute()
         except:
             pass
@@ -976,8 +976,8 @@ async def create_supplier(req: SupplierCreate, user=Depends(get_current_user)):
             "lead_time_days":req.lead_time_days,
             "notes":         req.notes,
             "categories":    req.categories,
-            "created_at":    datetime.now().isoformat(),
-            "updated_at":    datetime.now().isoformat(),
+            "created_at":    datetime.now(timezone.utc).isoformat(),
+            "updated_at":    datetime.now(timezone.utc).isoformat(),
         }
         result = supabase_admin.table("suppliers").insert(data).execute()
         return {"supplier": result.data[0] if result.data else {}}
@@ -989,7 +989,7 @@ async def update_supplier(supplier_id: str, req: SupplierUpdate, user=Depends(ge
     """Update a supplier."""
     try:
         update_data = {k: v for k, v in req.dict().items() if v}
-        update_data["updated_at"] = datetime.now().isoformat()
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         supabase_admin.table("suppliers").update(update_data).eq("id", supplier_id).eq("user_id", user.id).execute()
         return {"message": "Supplier updated"}
     except Exception as e:
@@ -1120,8 +1120,8 @@ async def generate_po(req: PORequest, user=Depends(get_current_user)):
             "total_cost":   total,
             "status":       "draft",
             "notes":        req.notes,
-            "created_at":   datetime.now().isoformat(),
-            "updated_at":   datetime.now().isoformat(),
+            "created_at":   datetime.now(timezone.utc).isoformat(),
+            "updated_at":   datetime.now(timezone.utc).isoformat(),
         }
 
         # Try to match supplier
@@ -1157,7 +1157,7 @@ async def update_order_status(order_id: str, status: str, user=Depends(get_curre
     try:
         supabase_admin.table("orders").update({
             "status":     status,
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", order_id).eq("user_id", user.id).execute()
         return {"message": "Order status updated to " + status}
     except Exception as e:
@@ -1211,8 +1211,8 @@ async def add_sku(req: ActiveSKU, user=Depends(get_current_user)):
             "reorder_quantity":     req.reorder_quantity,
             "unit_cost":            req.unit_cost,
             "notes":                req.notes,
-            "created_at":           datetime.now().isoformat(),
-            "updated_at":           datetime.now().isoformat(),
+            "created_at":           datetime.now(timezone.utc).isoformat(),
+            "updated_at":           datetime.now(timezone.utc).isoformat(),
         }
         result = supabase_admin.table("active_skus").insert(data).execute()
         return {"sku": result.data[0] if result.data else {}}
@@ -1224,7 +1224,7 @@ async def update_sku(sku_id: str, req: ActiveSKU, user=Depends(get_current_user)
     """Update a SKU's stock level and settings."""
     try:
         update_data = {k:v for k,v in req.dict().items() if v}
-        update_data["updated_at"] = datetime.now().isoformat()
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         supabase_admin.table("active_skus").update(update_data).eq("id", sku_id).eq("user_id", user.id).execute()
         return {"message": "SKU updated"}
     except Exception as e:
@@ -1427,7 +1427,7 @@ async def get_admin_stats(secret: str = ""):
             "suppliers":       len(suppliers.data or []),
             "orders":          len(orders.data or []),
             "mrr_estimate":    "$" + str(mrr),
-            "timestamp":       datetime.now().isoformat(),
+            "timestamp":       datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1496,7 +1496,7 @@ async def owner_logs(secret: str = ""):
         return {
             "leads_last_hour": len(result.data or []),
             "recent_leads": result.data[:5] if result.data else [],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1554,14 +1554,14 @@ async def test_agent(secret: str = ""):
             "test_user_id": str(test_user_id)[:20],
             "leads_found": leads_found,
             "sample_leads": lead_names,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         import traceback
         return {
             "error": str(e),
             "traceback": traceback.format_exc(),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
 @app.get("/owner/raw-leads")
@@ -1627,8 +1627,8 @@ async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
             "subject":    req.subject or req.category,
             "message":    req.message,
             "status":     "open",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
             ticket_result = supabase_admin.table("support_tickets").insert(ticket_data).execute()
@@ -1656,10 +1656,10 @@ async def submit_ticket(req: TicketRequest, user=Depends(get_current_user)):
         if ticket.get("id"):
             supabase_admin.table("support_tickets").update({
                 "ai_response":     result["response"],
-                "ai_responded_at": datetime.now().isoformat(),
+                "ai_responded_at": datetime.now(timezone.utc).isoformat(),
                 "status":          "resolved" if result["resolved"] else "escalated",
                 "escalated":       result["escalate"],
-                "updated_at":      datetime.now().isoformat(),
+                "updated_at":      datetime.now(timezone.utc).isoformat(),
             }).eq("id", ticket["id"]).execute()
 
         return {
@@ -1762,7 +1762,7 @@ async def get_market_intel(market: str = "US", user=Depends(get_current_user)):
         markets = [m.strip().upper() for m in market.split(",")]
         intel   = run_market_intel(anthropic_client, markets)
         save_intel_to_db(intel, supabase_admin)
-        return {"intel": intel, "markets": markets, "generated_at": datetime.now().isoformat()}
+        return {"intel": intel, "markets": markets, "generated_at": datetime.now(timezone.utc).isoformat()}
     except HTTPException:
         raise
     except Exception as e:
@@ -1808,7 +1808,7 @@ async def get_market_intel_by_code(market_code: str, user=Depends(get_current_us
         if market["status"] == "coming_soon":
             return {"market": market, "status": "coming_soon", "message": "This market is coming soon!"}
         intel = run_market_intel(anthropic_client, [code])
-        return {"market": market, "intel": intel, "generated_at": datetime.now().isoformat()}
+        return {"market": market, "intel": intel, "generated_at": datetime.now(timezone.utc).isoformat()}
     except HTTPException:
         raise
     except Exception as e:
@@ -1895,7 +1895,7 @@ async def owner_analytics(secret: str = ""):
             "total_leads":  total_leads,
             "buy_leads":    buy_leads,
             "avg_roi":      avg_roi_all,
-            "timestamp":    datetime.now().isoformat()
+            "timestamp":    datetime.now(timezone.utc).isoformat()
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1932,7 +1932,7 @@ async def verify_single_lead(lead_id: str, user=Depends(get_current_user)):
             # Update in database
             supabase_admin.table("leads").update({
                 "data":       json.dumps(verified_lead[0]),
-                "updated_at": datetime.now().isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat()
             }).eq("id", lead_id).execute()
 
         return {"lead": verified_lead[0] if verified_lead else lead}
@@ -1966,14 +1966,14 @@ async def public_status():
             "email":           "operational",
             "billing":         "operational",
             "keepa":           "operational" if keepa_available() else "not_configured",
-            "timestamp":       datetime.now().isoformat(),
+            "timestamp":       datetime.now(timezone.utc).isoformat(),
             "version":         "2.0.0"
         }
     except Exception as e:
         return {
             "status":    "degraded",
             "error":     str(e),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
 # ── Owner Settings & Control Panel ───────────────────────────────────────────
@@ -2087,7 +2087,7 @@ async def owner_custom_scan(secret: str = "", leads: int = 20):
                     "roi":            safe_roi(lead.get("roi",0)),
                     "type":           lead.get("type","wholesale"),
                     "source":         (lead.get("source","")[:100]),
-                    "found_at":       datetime.now().isoformat(),
+                    "found_at":       datetime.now(timezone.utc).isoformat(),
                     "verified":       lead.get("verified", False),
                 }).execute()
                 saved += 1
