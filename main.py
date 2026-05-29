@@ -301,7 +301,7 @@ def check_api_rate_limit() -> bool:
         _api_call_count["count"] = 0
         _api_call_count["reset_time"] = now
     _api_call_count["count"] += 1
-    if _api_call_count["count"] > 50:  # Max 50 API calls per hour
+    if _api_call_count["count"] > 30:  # Max 30 API calls per hour
         log.warning("API rate limit reached — skipping scan to protect credits")
         return False
     return True
@@ -1746,7 +1746,7 @@ def run_monitor_job():
     except Exception as e:
         log.error("Monitor job error: " + str(e))
 
-schedule.every(6).hours.do(run_monitor_job)
+# DISABLED - too expensive: schedule.every(6).hours.do(run_monitor_job)
 
 # ── Agent 5: Market Intelligence ──────────────────────────────────────────────
 from market_intel_agent import run_market_intel, format_intel_for_digest, save_intel_to_db
@@ -1779,7 +1779,7 @@ def run_intel_job():
         log.error("Intel job error: " + str(e))
 
 # Intel job disabled temporarily - re-enable when API credits stable
-# schedule.every().day.at("07:00").do(run_intel_job)
+# # DISABLED - too expensive: schedule.every().day.at("07:00").do(run_intel_job)
 
 # ── International Market Support ──────────────────────────────────────────────
 

@@ -241,15 +241,8 @@ def send_digest(user_email, leads, tier):
     try:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
-        # Generate market pulse for Pro and Agency
+        # Market pulse disabled temporarily - re-enable when credits stable
         market_pulse = ''
-        if tier in ['pro','agency','custom']:
-            try:
-                from market_intel_agent import run_market_intel, format_intel_for_digest
-                intel = run_market_intel(ai_client, ['US']) if ai_client else {}
-                market_pulse = format_intel_for_digest(intel) if intel else ''
-            except Exception as me:
-                log.error('Market intel for digest error: ' + str(me))
         html      = build_email_html(user_email, leads, tier, market_pulse)
         buy_count = sum(1 for l in leads if l.get("recommendation") == "BUY")
         best_roi  = get_best_roi(leads)

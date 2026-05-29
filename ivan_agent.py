@@ -185,7 +185,7 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
             resp = ai_client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=2000,
-                tools=[{"type": "web_search_20250305", "name": "web_search"}],
+                # web search disabled - too expensive
                 messages=[{"role": "user", "content": ws_prompt}]
             )
             raw     = extract_text(resp.content)
@@ -205,7 +205,7 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
             resp2 = ai_client.messages.create(
                 model="claude-sonnet-4-5",
                 max_tokens=2000,
-                tools=[{"type": "web_search_20250305", "name": "web_search"}],
+                # web search disabled - too expensive
                 messages=[{"role": "user", "content": oa_prompt}]
             )
             raw2     = extract_text(resp2.content)
