@@ -715,20 +715,30 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
-        # Convert StripeObject to dict for safe access
-        session     = dict(event["data"]["object"])
-        meta        = dict(session.get("metadata") or {})
+        # Parse using Stripe's built-in JSON conversion
+        import json as _json
+        session_raw = event["data"]["object"]
+        # Convert to plain dict using JSON serialization
+        try:
+            session = _json.loads(_json.dumps(session_raw, default=str))
+        except:
+            session = {}
+
+        meta        = session.get("metadata") or {}
         user_id     = meta.get("user_id") or session.get("client_reference_id")
-        tier        = meta.get("tier", "starter")
+        tier        = str(meta.get("tier") or "starter")
         customer_id = session.get("customer")
-        # If tier missing from session metadata check subscription metadata
+
+        log.info("Checkout webhook: user=" + str(user_id) + " tier=" + str(tier))
+
+        # If tier missing check subscription metadata
         if tier == "starter" and session.get("subscription"):
             try:
                 sub      = stripe.Subscription.retrieve(session["subscription"])
-                sub_meta = dict(sub.get("metadata") or {})
+                sub_dict = _json.loads(_json.dumps(sub, default=str))
+                sub_meta = sub_dict.get("metadata") or {}
                 if sub_meta.get("tier"): tier = sub_meta["tier"]
             except: pass
-        log.info("Checkout webhook: user=" + str(user_id) + " tier=" + tier)
         if user_id:
             # Check if this is a trial
             sub_status = "trialing" if session.get("subscription") else "active"
