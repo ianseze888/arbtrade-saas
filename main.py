@@ -715,36 +715,36 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
-        # Parse using Stripe's built-in JSON conversion
-        import json as _json
-        session_raw = event["data"]["object"]
-        # Convert to plain dict using JSON serialization
+        # Access Stripe event data directly using bracket notation
+        # StripeObject supports [] access but not .get()
         try:
-            session = _json.loads(_json.dumps(session_raw, default=str))
-        except:
-            session = {}
-
-        meta        = session.get("metadata") or {}
-        user_id     = meta.get("user_id") or session.get("client_reference_id")
-        tier        = str(meta.get("tier") or "starter")
-        customer_id = session.get("customer")
+            obj         = event["data"]["object"]
+            metadata    = obj["metadata"] if "metadata" in obj else {}
+            user_id     = str(metadata["user_id"]) if "user_id" in metadata else None
+            if not user_id:
+                user_id = str(obj["client_reference_id"]) if "client_reference_id" in obj else None
+            tier        = str(metadata["tier"]) if "tier" in metadata else "starter"
+            customer_id = str(obj["customer"]) if "customer" in obj else None
+            subscription_id = str(obj["subscription"]) if "subscription" in obj else None
+        except Exception as parse_err:
+            log.error("Webhook parse error: " + str(parse_err))
+            return {"status": "parse_error"}
 
         log.info("Checkout webhook: user=" + str(user_id) + " tier=" + str(tier))
 
         # If tier missing check subscription metadata
-        if tier == "starter" and session.get("subscription"):
+        if tier == "starter" and subscription_id:
             try:
-                sub      = stripe.Subscription.retrieve(session["subscription"])
-                sub_dict = _json.loads(_json.dumps(sub, default=str))
-                sub_meta = sub_dict.get("metadata") or {}
-                if sub_meta.get("tier"): tier = sub_meta["tier"]
+                sub      = stripe.Subscription.retrieve(subscription_id)
+                sub_meta = sub["metadata"] if "metadata" in sub else {}
+                if "tier" in sub_meta: tier = str(sub_meta["tier"])
             except: pass
         if user_id:
             # Check if this is a trial
             sub_status = "trialing" if session.get("subscription") else "active"
             try:
-                if session.get("subscription"):
-                    sub = stripe.Subscription.retrieve(session["subscription"])
+                if subscription_id:
+                    sub = stripe.Subscription.retrieve(subscription_id)
                     sub_status = sub.status
             except: pass
             try:
