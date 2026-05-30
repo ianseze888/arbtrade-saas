@@ -715,26 +715,46 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session.get("metadata", {}).get("user_id")
-        tier = session.get("metadata", {}).get("tier", "starter")
+        session     = event["data"]["object"]
+        meta        = session.get("metadata") or {}
+        user_id     = meta.get("user_id") or session.get("client_reference_id")
+        tier        = meta.get("tier", "starter")
         customer_id = session.get("customer")
+        # If tier missing from session metadata check subscription metadata
+        if tier == "starter" and session.get("subscription"):
+            try:
+                sub = stripe.Subscription.retrieve(session["subscription"])
+                sub_meta = sub.get("metadata") or {}
+                if sub_meta.get("tier"): tier = sub_meta["tier"]
+            except: pass
+        log.info("Checkout webhook: user=" + str(user_id) + " tier=" + tier)
         if user_id:
             # Check if this is a trial
             sub_status = "trialing" if session.get("subscription") else "active"
             try:
-                # Get subscription status from Stripe
                 if session.get("subscription"):
                     sub = stripe.Subscription.retrieve(session["subscription"])
                     sub_status = sub.status
             except: pass
-            supabase_admin.table("profiles").update({
-                "tier":                tier,
-                "stripe_customer_id":  customer_id,
-                "subscription_status": sub_status,
-                "subscribed_at":       datetime.now(timezone.utc).isoformat()
-            }).eq("id", user_id).execute()
-            log.info(f"User {user_id} upgraded to {tier} ({sub_status})")
+            try:
+                supabase_admin.table("profiles").update({
+                    "tier":                tier,
+                    "stripe_customer_id":  customer_id,
+                    "subscription_status": sub_status,
+                    "subscribed_at":       datetime.now(timezone.utc).isoformat()
+                }).eq("id", user_id).execute()
+                log.info(f"User {user_id} upgraded to {tier} ({sub_status})")
+            except Exception as update_err:
+                log.error("Profile update error: " + str(update_err))
+                # Fallback - update just tier and customer_id
+                try:
+                    supabase_admin.table("profiles").update({
+                        "tier": tier,
+                        "stripe_customer_id": customer_id,
+                    }).eq("id", user_id).execute()
+                    log.info(f"Fallback update: user {user_id} -> {tier}")
+                except Exception as e2:
+                    log.error("Fallback update failed: " + str(e2))
 
     elif event["type"] in ["customer.subscription.deleted", "customer.subscription.paused"]:
         customer_id = event["data"]["object"].get("customer")
