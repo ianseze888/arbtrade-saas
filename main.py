@@ -637,7 +637,9 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
         leads = raw_leads
         ws_count = sum(1 for l in leads if l.get("type")=="wholesale")
         oa_count = sum(1 for l in leads if l.get("type")=="oa")
-        best_roi = min(max((safe_roi(l.get("roi",0)) for l in leads), default=0), 200)  # Cap at 200%
+        # Best ROI from BUY leads only, capped at 99% to avoid bad data
+        buy_leads_roi = [safe_roi(l.get("roi",0)) for l in leads if l.get("recommendation") == "BUY" and safe_roi(l.get("roi",0)) <= 99]
+        best_roi = max(buy_leads_roi, default=0)
         return {
             "leads": leads,
             "total_leads": len(leads),
