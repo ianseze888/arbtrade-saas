@@ -147,15 +147,24 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
         # Get current BSR from stats
         sales_rank = product.get("salesRanks", {})
         if sales_rank:
-            # Get the first category BSR
-            for cat_id, ranks in sales_rank.items():
-                if ranks and len(ranks) >= 2:
-                    bsr_current = ranks[-1]  # Most recent
-                    if len(ranks) >= 4:
+            # salesRanks can be dict or list depending on API version
+            if isinstance(sales_rank, dict):
+                rank_items = sales_rank.items()
+            elif isinstance(sales_rank, list):
+                # List format: [cat_id, rank, cat_id, rank, ...]
+                rank_items = [(str(sales_rank[i]), [sales_rank[i+1]]) 
+                             for i in range(0, len(sales_rank)-1, 2)] if len(sales_rank) >= 2 else []
+            else:
+                rank_items = []
+            
+            for cat_id, ranks in rank_items:
+                if ranks and len(ranks) >= 1:
+                    bsr_current = ranks[-1] if isinstance(ranks, list) else ranks
+                    if isinstance(ranks, list) and len(ranks) >= 3:
                         bsr_30d = ranks[-3]
-                        if bsr_30d and bsr_current:
+                        if bsr_30d and bsr_current and bsr_30d > 0:
                             if bsr_current < bsr_30d:
-                                bsr_trend = "improving"  # Lower BSR = better
+                                bsr_trend = "improving"
                             elif bsr_current > bsr_30d * 1.2:
                                 bsr_trend = "declining"
                             else:
@@ -169,16 +178,16 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
 
         # CSV index 0 = Amazon price, index 18 = Buy Box price
         try:
-            if csv and len(csv) > 18 and csv[18]:
-                recent = [x for x in csv[18][-20:] if x > 0]
+            if csv and isinstance(csv, list) and len(csv) > 18 and csv[18]:
+                recent = [x for x in csv[18][-20:] if isinstance(x, (int,float)) and x > 0]
                 if recent:
-                    buy_box_price = recent[-1] / 100  # Convert to dollars
+                    buy_box_price = recent[-1] / 100
         except:
             pass
 
         try:
-            if csv and len(csv) > 0 and csv[0]:
-                recent_amazon = [x for x in csv[0][-20:] if x > 0]
+            if csv and isinstance(csv, list) and len(csv) > 0 and csv[0]:
+                recent_amazon = [x for x in csv[0][-20:] if isinstance(x, (int,float)) and x > 0]
                 if recent_amazon:
                     amazon_price = recent_amazon[-1] / 100
         except:
@@ -190,30 +199,39 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
         amazon_selling = False
 
         for offer in (offers or []):
-            if offer.get("isFBA"):
-                fba_sellers += 1
-            if offer.get("isAmazon"):
-                amazon_selling = True
+            if isinstance(offer, dict):
+                if offer.get("isFBA"):
+                    fba_sellers += 1
+                if offer.get("isAmazon"):
+                    amazon_selling = True
 
         # If no offers data use stats
-        if fba_sellers == 0 and stats:
-            count = stats.get("current", {}).get("offerCountFBA", 0)
-            fba_sellers = count or 0
+        if fba_sellers == 0 and stats and isinstance(stats, dict):
+            current = stats.get("current", {})
+            if isinstance(current, dict):
+                fba_sellers = current.get("offerCountFBA", 0) or 0
 
         # Monthly sales estimate from 90-day stats
         monthly_sales = 0
-        if stats and stats.get("current"):
-            sold_30 = stats["current"].get("sold30", 0)
-            if sold_30:
-                monthly_sales = sold_30
+        if stats and isinstance(stats, dict):
+            current = stats.get("current", {})
+            if isinstance(current, dict):
+                sold_30 = current.get("sold30", 0)
+                if sold_30:
+                    monthly_sales = sold_30
 
-        # Price stability (compare 90d avg vs current)
+        # Price stability
         price_stable = True
-        if stats and stats.get("avg90", {}):
-            avg90 = stats["avg90"].get("SALES", 0)
-            if avg90 and buy_box_price:
-                variance = abs(buy_box_price - avg90/100) / (avg90/100) if avg90 > 0 else 0
-                price_stable = variance < 0.15  # Less than 15% variance = stable
+        try:
+            if stats and isinstance(stats, dict) and buy_box_price:
+                avg90 = stats.get("avg90", {})
+                if isinstance(avg90, dict):
+                    avg_price = avg90.get("SALES", 0)
+                    if avg_price and avg_price > 0:
+                        variance = abs(buy_box_price - avg_price/100) / (avg_price/100)
+                        price_stable = variance < 0.15
+        except:
+            pass
 
         # Category
         categories = product.get("categories", [])
