@@ -741,7 +741,7 @@ async def stripe_webhook(request: Request):
             except: pass
         if user_id:
             # Check if this is a trial
-            sub_status = "trialing" if session.get("subscription") else "active"
+            sub_status = "trialing" if subscription_id else "active"
             try:
                 if subscription_id:
                     sub = stripe.Subscription.retrieve(subscription_id)
