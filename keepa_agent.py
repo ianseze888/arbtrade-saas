@@ -83,6 +83,50 @@ def lookup_product(asin: str, marketplace: str = "US") -> dict:
         log.error("Keepa API error for " + asin + ": " + str(e))
         return {}
 
+
+def search_product_by_name(name: str, marketplace: str = "US") -> dict:
+    """
+    Search Keepa for a product by name.
+    Returns best matching product with real ASIN and data.
+    Costs 1 token per search.
+    """
+    if not keepa_available():
+        return {}
+    
+    marketplace_id = MARKETPLACE_IDS.get(marketplace, 1)
+    
+    try:
+        url = KEEPA_BASE_URL + "/search"
+        params = {
+            "key":    KEEPA_API_KEY,
+            "domain": marketplace_id,
+            "type":   "product",
+            "term":   name[:100],  # Keepa search term limit
+        }
+        
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        products = data.get("products", [])
+        if not products:
+            log.info("Keepa search: no results for " + name[:30])
+            return {}
+        
+        # Take the first/best match
+        product = products[0]
+        result  = parse_keepa_product(product, product.get("asin",""))
+        
+        if result:
+            log.info("Keepa search found: " + result.get("asin","") + " for " + name[:30])
+        
+        return result
+        
+    except Exception as e:
+        log.error("Keepa search error for " + name[:30] + ": " + str(e))
+        return {}
+
+
 def parse_keepa_product(product: dict, asin: str) -> dict:
     """Parse Keepa product data into ARBTRADE format."""
     try:
@@ -215,18 +259,26 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
 def verify_lead_with_keepa(lead: dict, marketplace: str = "US") -> dict:
     """
     Verify a single lead using Keepa data.
-    Updates lead with real market data.
+    Searches by ASIN if valid, otherwise searches by product name.
     Returns enriched lead.
     """
     asin = lead.get("asin", "")
+    name = lead.get("name", "")
 
-    # Validate ASIN format
-    if not asin or len(str(asin)) != 10 or not str(asin).startswith("B"):
-        lead["keepa_verified"]  = False
-        lead["keepa_skip_reason"] = "Invalid ASIN"
+    # Try ASIN lookup first if valid
+    if asin and len(str(asin)) == 10 and str(asin).startswith("B"):
+        keepa_data = lookup_product(asin, marketplace)
+    elif name:
+        # Search by product name
+        log.info("Keepa: searching by name for " + name[:30])
+        keepa_data = search_product_by_name(name, marketplace)
+        # Update lead with real ASIN if found
+        if keepa_data.get("asin"):
+            lead["asin"] = keepa_data["asin"]
+    else:
+        lead["keepa_verified"]    = False
+        lead["keepa_skip_reason"] = "No ASIN or name"
         return lead
-
-    keepa_data = lookup_product(asin, marketplace)
 
     if not keepa_data:
         lead["keepa_verified"]    = False
@@ -297,7 +349,7 @@ def verify_leads_batch_keepa(leads: list, marketplace: str = "US", delay: float 
         log.info("Keepa not configured — skipping verification")
         return leads
 
-    to_verify  = [l for l in leads if l.get("recommendation") in ["BUY","WATCH"] and l.get("asin") and len(str(l.get("asin",""))) == 10]
+    to_verify  = [l for l in leads if l.get("recommendation") in ["BUY","WATCH"]]
     to_skip    = [l for l in leads if l not in to_verify]
 
     log.info("Keepa: Verifying " + str(len(to_verify)) + " leads, skipping " + str(len(to_skip)))
