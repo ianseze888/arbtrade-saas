@@ -715,16 +715,17 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
-        session     = event["data"]["object"]
-        meta        = session.get("metadata") or {}
+        # Convert StripeObject to dict for safe access
+        session     = dict(event["data"]["object"])
+        meta        = dict(session.get("metadata") or {})
         user_id     = meta.get("user_id") or session.get("client_reference_id")
         tier        = meta.get("tier", "starter")
         customer_id = session.get("customer")
         # If tier missing from session metadata check subscription metadata
         if tier == "starter" and session.get("subscription"):
             try:
-                sub = stripe.Subscription.retrieve(session["subscription"])
-                sub_meta = sub.get("metadata") or {}
+                sub      = stripe.Subscription.retrieve(session["subscription"])
+                sub_meta = dict(sub.get("metadata") or {})
                 if sub_meta.get("tier"): tier = sub_meta["tier"]
             except: pass
         log.info("Checkout webhook: user=" + str(user_id) + " tier=" + tier)
