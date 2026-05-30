@@ -436,6 +436,18 @@ def scan_users_for_tier(tier: str):
                         log.info("Keepa: verifying " + str(len(leads)) + " leads for user " + str(user_id or "")[:8])
                         leads = verify_leads_batch_keepa(leads, "US", delay=1.0)
                         log.info("Keepa: verification complete")
+                        # Filter out leads with bad Keepa data
+                        before = len(leads)
+                        leads = [l for l in leads if not (
+                            l.get("keepa_verified") and (
+                                (l.get("fba_sellers", 0) > 15) or  # Too competitive
+                                (l.get("amazon_selling") and l.get("recommendation") == "BUY") or  # Amazon on listing
+                                (l.get("bsr_current") and l.get("bsr_current") > 150000)  # Poor BSR
+                            )
+                        )]
+                        filtered = before - len(leads)
+                        if filtered > 0:
+                            log.info("Keepa filtered " + str(filtered) + " bad leads")
                     except Exception as ke:
                         log.error("Keepa verification error: " + str(ke))
 
@@ -625,7 +637,7 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
         leads = raw_leads
         ws_count = sum(1 for l in leads if l.get("type")=="wholesale")
         oa_count = sum(1 for l in leads if l.get("type")=="oa")
-        best_roi = max((safe_roi(l.get("roi",0)) for l in leads), default=0)
+        best_roi = min(max((safe_roi(l.get("roi",0)) for l in leads), default=0), 200)  # Cap at 200%
         return {
             "leads": leads,
             "total_leads": len(leads),
