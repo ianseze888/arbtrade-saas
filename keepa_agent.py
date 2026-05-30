@@ -96,7 +96,8 @@ def search_product_by_name(name: str, marketplace: str = "US") -> dict:
     marketplace_id = MARKETPLACE_IDS.get(marketplace, 1)
     
     try:
-        url = KEEPA_BASE_URL + "/search"
+        # Keepa product search endpoint
+        url = KEEPA_BASE_URL + "/product"
         params = {
             "key":    KEEPA_API_KEY,
             "domain": marketplace_id,
@@ -114,8 +115,11 @@ def search_product_by_name(name: str, marketplace: str = "US") -> dict:
             return {}
         
         # Take the first/best match
-        product = products[0]
-        result  = parse_keepa_product(product, product.get("asin",""))
+        best = products[0]
+        asin = best.get("asin", "")
+        if not asin:
+            return {}
+        result = parse_keepa_product(best, asin)
         
         if result:
             log.info("Keepa search found: " + result.get("asin","") + " for " + name[:30])
@@ -124,6 +128,7 @@ def search_product_by_name(name: str, marketplace: str = "US") -> dict:
         
     except Exception as e:
         log.error("Keepa search error for " + name[:30] + ": " + str(e))
+        log.error("Keepa search URL was: " + KEEPA_BASE_URL + "/product?type=product&term=" + name[:30])
         return {}
 
 
@@ -352,6 +357,7 @@ def verify_leads_batch_keepa(leads: list, marketplace: str = "US", delay: float 
     to_verify  = [l for l in leads if l.get("recommendation") in ["BUY","WATCH"]]
     to_skip    = [l for l in leads if l not in to_verify]
 
+    log.info("Keepa: tokens available - checking " + str(len(to_verify)) + " leads")
     log.info("Keepa: Verifying " + str(len(to_verify)) + " leads, skipping " + str(len(to_skip)))
 
     verified = list(to_skip)
