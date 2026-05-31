@@ -627,13 +627,19 @@ async def get_leads(user=Depends(get_current_user), filter: str = "all"):
         elif filter == "oa": query = query.eq("type","oa")
         elif filter == "BUY": query = query.eq("recommendation","BUY")
         result = query.execute()
-        raw_leads = [json.loads(r["data"]) for r in (result.data or [])]
-        # Clean fake ASINs before returning to dashboard
-        for l in raw_leads:
-            asin = str(l.get("asin","") or "")
-            if not (len(asin)==10 and asin.startswith("B") and asin[1:].isalnum() 
-                    and asin not in ["B00XXXXX","B0EXAMPLE","B0XXXXXXXX"]):
-                l["asin"] = ""  # Strip fake ASIN — dashboard will use name search
+        raw_leads = []
+        for r in (result.data or []):
+            try:
+                lead_data = json.loads(r["data"])
+                lead_data["id"]       = r.get("id","")        # Include DB id for Agent 3
+                lead_data["found_at"] = r.get("found_at", lead_data.get("found_at",""))
+                # Clean fake ASINs
+                asin = str(lead_data.get("asin","") or "")
+                if not (len(asin)==10 and asin.startswith("B") and asin[1:].isalnum()
+                        and asin not in ["B00XXXXX","B0EXAMPLE","B0XXXXXXXX"]):
+                    lead_data["asin"] = ""
+                raw_leads.append(lead_data)
+            except: pass
         leads = raw_leads
         ws_count = sum(1 for l in leads if l.get("type")=="wholesale")
         oa_count = sum(1 for l in leads if l.get("type")=="oa")
