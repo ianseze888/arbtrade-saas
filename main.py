@@ -2163,3 +2163,56 @@ async def clear_old_leads(secret: str = "", days: int = 90):
         return {"success": True, "message": f"Cleared leads older than {days} days"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ── Agent 3: Supplier Outreach ─────────────────────────────────────────────────
+
+from outreach_agent import run_agent3, add_to_supplier_crm
+
+@app.post("/leads/{lead_id}/find-supplier")
+async def find_supplier(lead_id: str, user=Depends(get_current_user)):
+    """
+    Agent 3: Find supplier contact for an approved lead.
+    Returns supplier details, application URL, and outreach email draft.
+    """
+    try:
+        # Get lead from database
+        result = supabase_admin.table("leads").select("*").eq(
+            "id", lead_id
+        ).eq("user_id", str(user.id)).execute()
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Lead not found")
+
+        lead = json.loads(result.data[0].get("data","{}"))
+
+        # Get user's business profile from criteria
+        profile  = await get_user_profile(user.id)
+        criteria = profile.get("criteria","{}") if profile else "{}"
+        if isinstance(criteria, str):
+            try: criteria = json.loads(criteria)
+            except: criteria = {}
+
+        business_profile = criteria.get("business_profile", {})
+
+        # Check rate limit
+        if not check_api_rate_limit():
+            return {"error": "Rate limit reached — try again shortly"}
+
+        # Run Agent 3
+        agent3_result = run_agent3(lead, business_profile, anthropic_client)
+
+        # Auto-add to CRM if supplier found
+        if agent3_result.get("supplier_found"):
+            add_to_supplier_crm(
+                str(user.id),
+                lead,
+                agent3_result["supplier"],
+                supabase_admin
+            )
+
+        return agent3_result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

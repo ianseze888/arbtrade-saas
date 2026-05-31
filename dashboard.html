@@ -346,6 +346,49 @@ button.btn-gold:hover{background:var(--gold2)}
     </div>
     <div class="field"><label>Categories</label><input type="text" id="oa-cats" value="Health & Household, Beauty & Personal Care"></div>
   </div>
+  <!-- BUSINESS PROFILE -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Business Profile</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Used to personalize supplier outreach emails sent on your behalf</div>
+    <div class="g2" style="gap:12px">
+      <div class="field">
+        <label>Business / Store name</label>
+        <input type="text" id="biz-name" placeholder="e.g. Ace & Ice Grand LLC"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+      <div class="field">
+        <label>Amazon store name</label>
+        <input type="text" id="biz-amazon-store" placeholder="e.g. AceAndIceGrand"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="biz-contact-name" placeholder="e.g. Ian Eze"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+      <div class="field">
+        <label>Business email</label>
+        <input type="email" id="biz-email" placeholder="e.g. hello@yourdomain.com"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+      <div class="field">
+        <label>Monthly purchasing budget</label>
+        <input type="text" id="biz-budget" placeholder="e.g. $2,000 - $5,000"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+      <div class="field">
+        <label>Years selling on Amazon</label>
+        <input type="text" id="biz-years" placeholder="e.g. 2 years"
+          style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+      </div>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>Business address (city, state)</label>
+      <input type="text" id="biz-location" placeholder="e.g. Seattle, WA"
+        style="width:100%;font-size:13px;padding:8px 11px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-family:var(--sans);outline:none">
+    </div>
+  </div>
+
   <button class="btn btn-gold" onclick="saveCriteria()" id="save-crit-btn">Save criteria</button>
   <span style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-left:12px" id="crit-msg"></span>
 </div>
@@ -820,6 +863,15 @@ async function loadCriteria() {
     if(oa.min_price_spread){document.getElementById('oa-spread').value=oa.min_price_spread}
     if(oa.max_sellers){document.getElementById('oa-sellers').value=oa.max_sellers;document.getElementById('oa-sellers-v').textContent=oa.max_sellers}
     if(oa.categories){document.getElementById('oa-cats').value=oa.categories.join(', ')}
+    // Load business profile
+    var bp = c.business_profile || {};
+    if(document.getElementById('biz-name')) document.getElementById('biz-name').value = bp.business_name || '';
+    if(document.getElementById('biz-amazon-store')) document.getElementById('biz-amazon-store').value = bp.amazon_store || '';
+    if(document.getElementById('biz-contact-name')) document.getElementById('biz-contact-name').value = bp.contact_name || '';
+    if(document.getElementById('biz-email')) document.getElementById('biz-email').value = bp.business_email || '';
+    if(document.getElementById('biz-budget')) document.getElementById('biz-budget').value = bp.monthly_budget || '';
+    if(document.getElementById('biz-years')) document.getElementById('biz-years').value = bp.years_selling || '';
+    if(document.getElementById('biz-location')) document.getElementById('biz-location').value = bp.location || '';
   } catch(e) {}
 }
 
@@ -848,6 +900,15 @@ async function saveCriteria() {
       categories:document.getElementById('oa-cats').value.split(',').map(function(s){return s.trim()}),
       active_sources:["Walgreens clearance","CVS weekly sales","Vitacost sale items","iHerb promotions","Target Circle deals","Walmart Clearance"],
       notes:''
+    },
+    business_profile:{
+      business_name:    document.getElementById('biz-name').value.trim(),
+      amazon_store:     document.getElementById('biz-amazon-store').value.trim(),
+      contact_name:     document.getElementById('biz-contact-name').value.trim(),
+      business_email:   document.getElementById('biz-email').value.trim(),
+      monthly_budget:   document.getElementById('biz-budget').value.trim(),
+      years_selling:    document.getElementById('biz-years').value.trim(),
+      location:         document.getElementById('biz-location').value.trim()
     }
   };
   try {
@@ -1363,8 +1424,16 @@ function openSourcingModal(lead) {
       ? "→ " + supplierInfo.label
       : "→ Find Supplier";
     btnSupplier.style.cssText = "flex:1;text-align:center;padding:9px;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:8px;color:var(--gold);text-decoration:none;font-size:12px;font-family:var(--mono);font-weight:600";
-    btnSupplier.title = "Opens supplier page for " + (lead.name || "this product");
     actionsDiv.appendChild(btnSupplier);
+
+    // Agent 3 button - only if lead has an ID
+    if(lead.id) {
+      var btnAgent3 = document.createElement("button");
+      btnAgent3.textContent = "⚡ Agent 3: Get contact";
+      btnAgent3.style.cssText = "flex:1;padding:9px;background:rgba(200,169,110,0.15);border:1px solid rgba(200,169,110,0.4);border-radius:8px;color:var(--gold);font-family:var(--sans);font-size:12px;cursor:pointer;font-weight:600";
+      btnAgent3.onclick = function() { runAgent3(lead); };
+      actionsDiv.appendChild(btnAgent3);
+    }
   }
 
   var btnApprove = document.createElement("button");
@@ -1428,6 +1497,75 @@ function openSourcingModal(lead) {
   document.getElementById('sourcing-modal').style.display = 'flex';
 }
 
+
+async function runAgent3(lead) {
+  document.getElementById('agent3-modal').style.display = 'flex';
+  document.getElementById('agent3-loading').style.display = 'block';
+  document.getElementById('agent3-result').style.display  = 'none';
+  closeSourcingModal();
+
+  try {
+    var leadId = lead.id || lead.lead_id || '';
+    if(!leadId) {
+      // No ID yet - use lead data directly
+      showAgent3Error('Lead must be approved first to use Agent 3');
+      return;
+    }
+    var resp = await fetch(API+'/leads/'+leadId+'/find-supplier', {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    var data = await resp.json();
+
+    if(data.error) {
+      showAgent3Error(data.error);
+      return;
+    }
+
+    // Show results
+    document.getElementById('agent3-loading').style.display = 'none';
+    document.getElementById('agent3-result').style.display  = 'block';
+
+    var supplier = data.supplier || {};
+    document.getElementById('agent3-supplier-name').textContent = supplier.brand_name || lead.name || '—';
+
+    var details = '';
+    if(supplier.brand_website) details += 'Website: ' + supplier.brand_website + '\n';
+    if(supplier.contact_email) details += 'Email: ' + supplier.contact_email + '\n';
+    if(supplier.distributor) details += 'Distributor: ' + supplier.distributor + '\n';
+    if(supplier.moq) details += 'MOQ: ' + supplier.moq + '\n';
+    if(supplier.confidence) details += 'Confidence: ' + supplier.confidence.toUpperCase();
+    document.getElementById('agent3-supplier-details').textContent = details;
+
+    if(data.apply_url) {
+      document.getElementById('agent3-apply-link').href = data.apply_url;
+      document.getElementById('agent3-apply-link').style.display = 'inline-block';
+    }
+
+    document.getElementById('agent3-email').value = data.outreach_email || '';
+
+    if(data.supplier_found) {
+      document.getElementById('agent3-crm-note').textContent = '✓ Supplier auto-added to your CRM';
+    }
+
+  } catch(e) {
+    showAgent3Error('Error: ' + e.message);
+  }
+}
+
+function showAgent3Error(msg) {
+  document.getElementById('agent3-loading').innerHTML = '<div style="color:var(--red);font-family:var(--mono);font-size:12px">❌ ' + msg + '</div>';
+}
+
+function copyAgent3Email() {
+  var text = document.getElementById('agent3-email').value;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy email'; }, 2000);
+  });
+}
+
 </script>
 <!-- PO Modal -->
 <div id="po-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px">
@@ -1474,6 +1612,36 @@ function openSourcingModal(lead) {
 
     <!-- Action buttons -->
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap" id="sourcing-actions"></div>
+  </div>
+</div>
+
+
+<!-- Agent 3 Result Modal -->
+<div id="agent3-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px 32px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:17px;font-weight:700">⚡ Agent 3 — Supplier Contact</div>
+      <button onclick="document.getElementById('agent3-modal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="agent3-loading" style="text-align:center;padding:20px;color:var(--muted);font-family:var(--mono);font-size:12px">
+      <div class="spinner" style="margin:0 auto 12px"></div>
+      Agent 3 is searching for supplier contact...
+    </div>
+    <div id="agent3-result" style="display:none">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">
+        <div style="font-size:10px;font-family:var(--mono);color:var(--gold);margin-bottom:8px;letter-spacing:.08em">SUPPLIER FOUND</div>
+        <div id="agent3-supplier-name" style="font-size:14px;font-weight:600;margin-bottom:4px"></div>
+        <div id="agent3-supplier-details" style="font-size:11px;font-family:var(--mono);color:var(--muted);line-height:1.8"></div>
+        <a id="agent3-apply-link" href="#" target="_blank" style="display:inline-block;margin-top:8px;font-size:11px;font-family:var(--mono);color:var(--gold);text-decoration:none;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);padding:4px 12px;border-radius:20px">→ Apply for wholesale account</a>
+      </div>
+      <div style="font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;margin-bottom:8px">OUTREACH EMAIL DRAFT</div>
+      <textarea id="agent3-email" rows="12" style="width:100%;font-size:11px;font-family:var(--mono);padding:10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);resize:vertical;outline:none"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="copyAgent3Email()" style="flex:1;padding:9px;background:var(--gold);border:none;border-radius:8px;color:#000;font-weight:700;font-family:var(--sans);font-size:12px;cursor:pointer">Copy email</button>
+        <button onclick="document.getElementById('agent3-modal').style.display='none'" style="padding:9px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-family:var(--sans);font-size:12px;cursor:pointer">Close</button>
+      </div>
+      <div id="agent3-crm-note" style="font-size:10px;font-family:var(--mono);color:var(--green);margin-top:8px"></div>
+    </div>
   </div>
 </div>
 
