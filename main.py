@@ -223,8 +223,7 @@ def normalize_lead(lead):
 from agent_saas import run_agent_for_user, get_lead_history_days, deduplicate_leads
 from ian_agent import run_ian
 from ivan_agent import run_ivan
-from verify_agent import verify_leads_batch, get_verification_badge
-from outreach_agent import run_outreach_for_lead
+from outreach_agent import run_agent3, add_to_supplier_crm
 
 def run_agent_for_user_legacy(user_id: str, criteria: dict) -> list:
     ws = criteria.get("wholesale", {})
