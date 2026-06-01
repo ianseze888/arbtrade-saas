@@ -264,6 +264,13 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+    # Filter leads below minimum ROI threshold
+    min_roi = 15  # Never save leads below 15% ROI
+    before_roi = len(leads)
+    leads = [l for l in leads if safe_roi(l.get("roi", 0)) >= min_roi]
+    if len(leads) < before_roi:
+        log.info("ROI filter removed " + str(before_roi - len(leads)) + " low-ROI leads")
+
     log.info("Saving " + str(len(leads)) + " leads for user " + str(user_id)[:8] + " tier=" + tier + " history=" + str(history_days) + "days")
     try:
         # Only delete leads older than history window - NEVER delete recent leads
