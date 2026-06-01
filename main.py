@@ -264,6 +264,19 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+    # Normalize recommendations - only allow BUY, WATCH, PASS
+    valid_recs = {"BUY", "WATCH", "PASS"}
+    for lead in leads:
+        rec = str(lead.get("recommendation","")).upper().strip()
+        if rec not in valid_recs:
+            # Map common variations
+            if "BUY" in rec or "GOOD" in rec or "STRONG" in rec:
+                lead["recommendation"] = "BUY"
+            elif "PASS" in rec or "AVOID" in rec or "NO" in rec:
+                lead["recommendation"] = "PASS"
+            else:
+                lead["recommendation"] = "WATCH"
+
     # Filter leads below minimum ROI threshold
     min_roi = 10  # Never save leads below 10% ROI
     max_roi = 150  # Never save leads above 150% ROI - calculation error
