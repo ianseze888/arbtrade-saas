@@ -803,8 +803,11 @@ async function loadLeads() {
     document.getElementById('m-roi').textContent = (data.best_roi||0)+'%';
     document.getElementById('results-sub').textContent = allLeads.length+' leads · '+data.tier+' plan · auto-refreshes every 5 min';
     var buys=allLeads.filter(function(l){return l.recommendation==='BUY'});
-    document.getElementById('dash-count').textContent = buys.length+' BUY recommendations';
-    renderLeads(buys,'dash-leads',null);
+    var dashLeads = buys.length > 0 ? buys : allLeads.filter(function(l){return l.recommendation==='WATCH'});
+    dashLeads.sort(function(a,b){ return new Date(b.found_at||0) - new Date(a.found_at||0); });
+    var dashLabel = buys.length > 0 ? buys.length+' BUY recommendations' : dashLeads.length+' top leads';
+    document.getElementById('dash-count').textContent = dashLabel;
+    renderLeads(dashLeads,'dash-leads',null);
     applyFilter();
   } catch(e) {
     document.getElementById('dash-leads').innerHTML='<div class="empty"><div class="empty-icon">◈</div>Could not load leads. Please refresh.</div>';

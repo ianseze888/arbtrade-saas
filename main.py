@@ -71,7 +71,7 @@ TIER_LIMITS = {
     },
     "agency": {
         "manual_scans_per_day": 3,
-        "max_leads": 12,          # 12 leads/cycle x 4 scans/day = 48/day, 1440/month
+        "max_leads": 20,          # 12 leads/cycle x 4 scans/day = 48/day, 1440/month
         "categories": 999,
         "scan_interval_hours": 6,  # Every 6 hours
         "leads_per_cycle": 12,
@@ -265,7 +265,7 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     # Filter leads below minimum ROI threshold
-    min_roi = 15  # Never save leads below 15% ROI
+    min_roi = 10  # Never save leads below 10% ROI
     before_roi = len(leads)
     leads = [l for l in leads if safe_roi(l.get("roi", 0)) >= min_roi]
     if len(leads) < before_roi:
@@ -434,7 +434,7 @@ def scan_users_for_tier(tier: str):
 
             try:
                 # Run Ian and Ivan in parallel for real verified leads
-                leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads)
+                leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads + 8)  # Extra buffer for filtering
 
                 # Keepa verification — enrich leads with real Amazon data
                 if leads and keepa_available():
@@ -446,13 +446,10 @@ def scan_users_for_tier(tier: str):
                         before = len(leads)
                         leads = [l for l in leads if not (
                             l.get("keepa_verified") and (
-                                (l.get("fba_sellers", 0) > 15) or
-                                (l.get("amazon_selling") and l.get("recommendation") == "BUY") or
-                                (l.get("bsr_current") and l.get("bsr_current") > 150000) or
-                                # Remove leads with no sell price AND no BSR (inactive/dead listing)
-                                (l.get("sell_price") in [None, "", "—", "$0.00"] and 
-                                 l.get("bsr") in [None, "", "—"] and
-                                 l.get("sellers", 0) == 0)
+                                # Only filter truly dead listings - 0 sellers AND no BSR AND no buy box
+                                (l.get("fba_sellers", 0) == 0 and 
+                                 l.get("bsr_current") is None and
+                                 l.get("buy_box_price") is None)
                             )
                         )]
                         filtered = before - len(leads)
