@@ -2225,3 +2225,36 @@ async def find_supplier(lead_id: str, user=Depends(get_current_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/leads/{lead_id}/decline")
+async def decline_lead(lead_id: str, user=Depends(get_current_user)):
+    """Decline/reject a lead — removes it from user dashboard."""
+    try:
+        result = supabase_admin.table("leads").delete().eq(
+            "id", lead_id
+        ).eq("user_id", str(user.id)).execute()
+        return {"success": True, "message": "Lead declined and removed"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/leads/{lead_id}/skip")
+async def skip_lead(lead_id: str, user=Depends(get_current_user)):
+    """Skip a lead — marks it as skipped without deleting."""
+    try:
+        result = supabase_admin.table("leads").select("*").eq(
+            "id", lead_id
+        ).eq("user_id", str(user.id)).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        lead_data = json.loads(result.data[0].get("data","{}"))
+        lead_data["skipped"] = True
+        lead_data["skipped_at"] = datetime.now(timezone.utc).isoformat()
+        supabase_admin.table("leads").update({
+            "data": json.dumps(lead_data),
+            "recommendation": "PASS"
+        }).eq("id", lead_id).execute()
+        return {"success": True, "message": "Lead skipped"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
