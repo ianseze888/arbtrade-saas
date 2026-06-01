@@ -670,7 +670,11 @@ function renderCard(l) {
   var agentBadge=isOwner?(l.agent==='Agent Ian'?'<span style="font-size:9px;font-family:var(--mono);color:var(--gold);opacity:.6;margin-left:3px">&#11044; IAN</span>':l.agent==='Agent Ivan'?'<span style="font-size:9px;font-family:var(--mono);color:var(--oa);opacity:.6;margin-left:3px">&#11044; IVAN</span>':''):'';
   var recClass=l.recommendation==='BUY'?'rec-buy':l.recommendation==='WATCH'?'rec-watch':'rec-pass';
   var risks=getRisks(l.risk_flags).map(function(r){return '<span class="tag tag-risk">'+r+'</span>'}).join('');
-  var foundAt=l.found_at?new Date(l.found_at).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  var foundAt='';
+  if(l.found_at) {
+    var d = new Date(l.found_at.endsWith('Z') || l.found_at.includes('+') ? l.found_at : l.found_at + 'Z');
+    foundAt = d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+  };
   return '<div class="lead-card '+typeClass+'">' +
     '<div>' +
       '<div class="lead-name">'+(l.name||'—')+'</div>' +

@@ -439,14 +439,18 @@ def scan_users_for_tier(tier: str):
                         before = len(leads)
                         leads = [l for l in leads if not (
                             l.get("keepa_verified") and (
-                                (l.get("fba_sellers", 0) > 15) or  # Too competitive
-                                (l.get("amazon_selling") and l.get("recommendation") == "BUY") or  # Amazon on listing
-                                (l.get("bsr_current") and l.get("bsr_current") > 150000)  # Poor BSR
+                                (l.get("fba_sellers", 0) > 15) or
+                                (l.get("amazon_selling") and l.get("recommendation") == "BUY") or
+                                (l.get("bsr_current") and l.get("bsr_current") > 150000) or
+                                # Remove leads with no sell price AND no BSR (inactive/dead listing)
+                                (l.get("sell_price") in [None, "", "—", "$0.00"] and 
+                                 l.get("bsr") in [None, "", "—"] and
+                                 l.get("sellers", 0) == 0)
                             )
                         )]
                         filtered = before - len(leads)
                         if filtered > 0:
-                            log.info("Keepa filtered " + str(filtered) + " bad leads")
+                            log.info("Keepa filtered " + str(filtered) + " bad/inactive leads")
                     except Exception as ke:
                         log.error("Keepa verification error: " + str(ke))
 
