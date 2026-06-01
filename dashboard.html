@@ -645,7 +645,10 @@ function logout() {
 }
 
 function getRoi(val) {
-  try{return parseInt(String(val).replace('%','').split('-')[0].trim())||0}catch(e){return 0}
+  try{
+    var n = parseInt(String(val).replace('%','').split('-')[0].trim())||0;
+    return Math.min(n, 99);  // Cap display at 99% - anything higher is a calculation error
+  }catch(e){return 0}
 }
 
 function getRisks(val) {
@@ -802,10 +805,13 @@ async function loadLeads() {
     document.getElementById('m-oa').textContent = data.oa_count||0;
     document.getElementById('m-roi').textContent = (data.best_roi||0)+'%';
     document.getElementById('results-sub').textContent = allLeads.length+' leads · '+data.tier+' plan · auto-refreshes every 5 min';
-    var buys=allLeads.filter(function(l){return l.recommendation==='BUY'});
-    var dashLeads = buys.length > 0 ? buys : allLeads.filter(function(l){return l.recommendation==='WATCH'});
+    var buys = allLeads.filter(function(l){return l.recommendation==='BUY'});
+    var watches = allLeads.filter(function(l){return l.recommendation==='WATCH'});
+    // Show BUY first then WATCH, newest first, max 10 on dashboard
+    var dashLeads = buys.concat(watches);
     dashLeads.sort(function(a,b){ return new Date(b.found_at||0) - new Date(a.found_at||0); });
-    var dashLabel = buys.length > 0 ? buys.length+' BUY recommendations' : dashLeads.length+' top leads';
+    dashLeads = dashLeads.slice(0, 10);
+    var dashLabel = buys.length+' BUY · '+watches.length+' WATCH leads';
     document.getElementById('dash-count').textContent = dashLabel;
     renderLeads(dashLeads,'dash-leads',null);
     applyFilter();

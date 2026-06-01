@@ -266,10 +266,11 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
     # Filter leads below minimum ROI threshold
     min_roi = 10  # Never save leads below 10% ROI
+    max_roi = 150  # Never save leads above 150% ROI - calculation error
     before_roi = len(leads)
-    leads = [l for l in leads if safe_roi(l.get("roi", 0)) >= min_roi]
+    leads = [l for l in leads if min_roi <= safe_roi(l.get("roi", 0)) <= max_roi]
     if len(leads) < before_roi:
-        log.info("ROI filter removed " + str(before_roi - len(leads)) + " low-ROI leads")
+        log.info("ROI filter removed " + str(before_roi - len(leads)) + " out-of-range ROI leads")
 
     log.info("Saving " + str(len(leads)) + " leads for user " + str(user_id)[:8] + " tier=" + tier + " history=" + str(history_days) + "days")
     try:
