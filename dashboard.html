@@ -669,6 +669,9 @@ function renderCard(l) {
   var typeClass=l.type==='oa'?'oa-card':'ws-card';
   var typeBadge=l.type==='oa'?'<span class="tag tag-oa">OA</span>':'<span class="tag tag-ws">WS</span>';
   var isOwner=(userProfile&&userProfile.profile&&userProfile.profile.email==='ianseze@gmail.com');
+  var isTrial=(userProfile&&userProfile.tier==='trial');
+  var buyCostDisplay = isTrial ? '<span style="filter:blur(4px);user-select:none">$XX.XX</span>' : '$'+(l.buy_cost||'—');
+  var sourceDisplay = isTrial ? '<span style="filter:blur(4px);user-select:none">Supplier hidden</span>' : (l.source||'—');
   var keepaBadge=l.keepa_verified?'<span style="font-size:9px;font-family:var(--mono);color:#3ECFA0;opacity:.8;margin-left:3px" title="Verified with real Amazon data">&#10003; VERIFIED</span>':'';
   var agentBadge=isOwner?(l.agent==='Agent Ian'?'<span style="font-size:9px;font-family:var(--mono);color:var(--gold);opacity:.6;margin-left:3px">&#11044; IAN</span>':l.agent==='Agent Ivan'?'<span style="font-size:9px;font-family:var(--mono);color:var(--oa);opacity:.6;margin-left:3px">&#11044; IVAN</span>':''):'';
   var recClass=l.recommendation==='BUY'?'rec-buy':l.recommendation==='WATCH'?'rec-watch':'rec-pass';
@@ -793,6 +796,15 @@ async function loadProfile() {
       } else {
         cancelBanner.style.display = 'none';
       }
+    // Show trial cap banner
+    var trialCapBanner = document.getElementById('trial-cap-banner');
+    if(trialCapBanner) {
+      if(tier === 'trial' && allLeads.length >= 20) {
+        trialCapBanner.style.display = 'block';
+      } else {
+        trialCapBanner.style.display = 'none';
+      }
+    }
     }
     var planName = tier.charAt(0).toUpperCase() + tier.slice(1);
     var displayName = (subStatus === 'trialing' && tier !== 'trial') ? planName + ' Trial' : planName;

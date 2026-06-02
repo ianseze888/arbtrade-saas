@@ -264,6 +264,20 @@ async def save_leads_for_user(user_id: str, leads: list, tier: str = "starter"):
     """Save leads to Supabase, keeping tier-based history window."""
     history_days = get_lead_history_days(tier)
     cutoff = (datetime.now() - timedelta(days=history_days)).isoformat()
+    # Trial account lead cap - max 20 leads total
+    if tier == "trial":
+        try:
+            existing = supabase_admin.table("leads").select("id", count="exact").eq("user_id", user_id).execute()
+            existing_count = existing.count or 0
+            if existing_count >= 20:
+                log.info("Trial lead cap reached for user " + str(user_id)[:8] + " (" + str(existing_count) + " leads)")
+                return
+            # Limit new leads to not exceed cap
+            remaining = 20 - existing_count
+            leads = leads[:remaining]
+        except Exception as e:
+            log.error("Trial cap check error: " + str(e))
+
     # Normalize recommendations - only allow BUY, WATCH, PASS
     valid_recs = {"BUY", "WATCH", "PASS"}
     for lead in leads:
@@ -794,6 +808,33 @@ async def stripe_webhook(request: Request):
             return {"status": "parse_error"}
 
         log.info("Checkout webhook: user=" + str(user_id) + " tier=" + str(tier))
+
+        # Check for duplicate card abuse
+        try:
+            if customer_id:
+                # Get card fingerprint from Stripe
+                payment_methods = stripe.PaymentMethod.list(customer=customer_id, type="card")
+                if payment_methods.data:
+                    fingerprint = payment_methods.data[0].card.fingerprint
+                    if fingerprint:
+                        # Check if this fingerprint exists on any other profile
+                        all_profiles = supabase_admin.table("profiles").select("id,email,tier").neq("id", str(user_id)).execute()
+                        for profile in (all_profiles.data or []):
+                            existing_cust = None
+                            try:
+                                # Check their Stripe customer for same fingerprint
+                                existing_cust_id = profile.get("stripe_customer_id")
+                                if existing_cust_id and existing_cust_id != customer_id:
+                                    existing_pms = stripe.PaymentMethod.list(customer=existing_cust_id, type="card")
+                                    for pm in (existing_pms.data or []):
+                                        if pm.card.fingerprint == fingerprint:
+                                            log.warning("Duplicate card detected! user=" + str(user_id) + " matched=" + profile.get("email",""))
+                                            # Mark as trial only - no real tier upgrade
+                                            tier = "trial"
+                                            break
+                            except: pass
+        except Exception as card_check_err:
+            log.error("Card check error: " + str(card_check_err))
 
         # If tier missing check subscription metadata
         if tier == "starter" and subscription_id:
