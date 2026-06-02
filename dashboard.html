@@ -785,6 +785,15 @@ async function loadProfile() {
     document.getElementById('user-email').textContent = email;
     // Show plan name with trial indicator if on trial
     var subStatus = data.profile ? data.profile.subscription_status : null;
+    // Show cancelled account notice
+    var cancelBanner = document.getElementById('cancelled-banner');
+    if(cancelBanner) {
+      if(subStatus === 'cancelled') {
+        cancelBanner.style.display = 'block';
+      } else {
+        cancelBanner.style.display = 'none';
+      }
+    }
     var planName = tier.charAt(0).toUpperCase() + tier.slice(1);
     var displayName = (subStatus === 'trialing' && tier !== 'trial') ? planName + ' Trial' : planName;
     document.getElementById('tier-badge').textContent = displayName;
@@ -829,7 +838,7 @@ async function loadLeads() {
     // Show BUY first then WATCH, newest first, max 10 on dashboard
     var dashLeads = buys.concat(watches);
     dashLeads.sort(function(a,b){ return new Date(b.found_at||0) - new Date(a.found_at||0); });
-    dashLeads = dashLeads.slice(0, 10);
+    dashLeads = dashLeads.slice(0, 50);  // Show up to 50 on dashboard
     var dashLabel = buys.length+' BUY · '+watches.length+' WATCH leads';
     document.getElementById('dash-count').textContent = dashLabel;
     renderLeads(dashLeads,'dash-leads',null);

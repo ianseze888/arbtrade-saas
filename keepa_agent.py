@@ -176,22 +176,49 @@ def parse_keepa_product(product: dict, asin: str) -> dict:
         buy_box_price = None
         amazon_price  = None
 
-        # CSV index 0 = Amazon price, index 18 = Buy Box price
-        try:
-            if csv and isinstance(csv, list) and len(csv) > 18 and csv[18]:
-                recent = [x for x in csv[18][-20:] if isinstance(x, (int,float)) and x > 0]
-                if recent:
-                    buy_box_price = recent[-1] / 100
-        except:
-            pass
+        # CSV index mapping:
+        # 0 = Amazon price, 1 = Marketplace New, 7 = New 3P FBA
+        # 18 = Buy Box price, 10 = Sales Rank
+        def extract_price_from_csv(csv_data, index):
+            """Extract most recent valid price from Keepa CSV array."""
+            try:
+                if not csv_data or not isinstance(csv_data, list):
+                    return None
+                if len(csv_data) <= index or not csv_data[index]:
+                    return None
+                arr = csv_data[index]
+                if not isinstance(arr, list):
+                    return None
+                # Keepa CSV alternates timestamp, value pairs
+                # Extract values (odd indices) that are positive
+                values = []
+                for i in range(1, len(arr), 2):
+                    if i < len(arr) and isinstance(arr[i], (int,float)) and arr[i] > 0:
+                        values.append(arr[i])
+                # If not alternating format, try all positive values
+                if not values:
+                    values = [x for x in arr if isinstance(x, (int,float)) and x > 0]
+                if values:
+                    return values[-1] / 100  # Convert cents to dollars
+                return None
+            except:
+                return None
 
-        try:
-            if csv and isinstance(csv, list) and len(csv) > 0 and csv[0]:
-                recent_amazon = [x for x in csv[0][-20:] if isinstance(x, (int,float)) and x > 0]
-                if recent_amazon:
-                    amazon_price = recent_amazon[-1] / 100
-        except:
-            pass
+        buy_box_price = extract_price_from_csv(csv, 18)
+        amazon_price  = extract_price_from_csv(csv, 0)
+        
+        # Fallback: try new 3P FBA price if no buy box
+        if not buy_box_price:
+            buy_box_price = extract_price_from_csv(csv, 7)
+        
+        # Also try getting BSR from CSV index 3 if not in salesRanks
+        if not bsr_current:
+            try:
+                bsr_from_csv = extract_price_from_csv(csv, 3)
+                if bsr_from_csv:
+                    bsr_current = int(bsr_from_csv)
+            except:
+                pass
 
         # Seller count
         offers = product.get("offers", [])
@@ -317,6 +344,23 @@ def verify_lead_with_keepa(lead: dict, marketplace: str = "US") -> dict:
         lead["sellers"] = keepa_data["fba_sellers"]
     if keepa_data.get("monthly_sales"):
         lead["monthly_sales"] = keepa_data["monthly_sales"]
+
+    # Recalculate ROI using real Keepa buy box price
+    try:
+        real_sell = keepa_data.get("buy_box_price")
+        buy_cost  = float(str(lead.get("buy_cost", 0) or 0).replace("$","").replace(",",""))
+        if real_sell and buy_cost and real_sell > 0 and buy_cost > 0:
+            # FBA fees: referral 15% + fulfillment ~$3.50
+            fba_fee   = (real_sell * 0.15) + 3.50
+            net_profit = real_sell - buy_cost - fba_fee
+            real_roi   = int((net_profit / buy_cost) * 100)
+            if 0 < real_roi <= 150:
+                lead["roi"] = real_roi
+                log.info("ROI recalculated: buy=$" + str(buy_cost) + 
+                        " sell=$" + str(real_sell) + 
+                        " roi=" + str(real_roi) + "%")
+    except Exception as re:
+        pass
 
     # Add Keepa enrichment
     lead["keepa_verified"]   = True

@@ -426,7 +426,7 @@ def scan_users_for_tier(tier: str):
     max_leads = limits["leads_per_cycle"]
     log.info("Running " + tier + " tier scan (max " + str(max_leads) + " leads/user)...")
     try:
-        users = supabase_admin.table("profiles").select("id,criteria,tier,email").eq("tier", tier).execute()
+        users = supabase_admin.table("profiles").select("id,criteria,tier,email,subscription_status").eq("tier", tier).neq("subscription_status", "cancelled").execute()
         scanned = 0
         for profile in (users.data or []):
             user_id  = profile["id"]
@@ -482,10 +482,10 @@ def scan_users_for_tier(tier: str):
                         before = len(leads)
                         leads = [l for l in leads if not (
                             l.get("keepa_verified") and (
-                                # Only filter truly dead listings - 0 sellers AND no BSR AND no buy box
+                                # Filter dead listings - 0 sellers AND no buy box price
                                 (l.get("fba_sellers", 0) == 0 and 
-                                 l.get("bsr_current") is None and
-                                 l.get("buy_box_price") is None)
+                                 l.get("buy_box_price") is None and
+                                 l.get("sell_price") in [None, "", "—", "$0.00"])
                             )
                         )]
                         filtered = before - len(leads)
