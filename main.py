@@ -451,6 +451,28 @@ def scan_users_for_tier(tier: str):
                 leads = run_twin_agents(user_id, criteria, anthropic_client, max_leads + 4)  # Small buffer for filtering
 
                 # Keepa verification — enrich leads with real Amazon data
+                # Enforce user criteria BEFORE Keepa verification
+                if leads and criteria:
+                    ws_min_roi  = criteria.get("wholesale", {}).get("min_roi_percent", 20)
+                    oa_min_roi  = criteria.get("online_arbitrage", {}).get("min_roi_percent", 25)
+                    ws_max_sell = criteria.get("wholesale", {}).get("max_sellers", 15)
+                    ws_max_bsr  = criteria.get("wholesale", {}).get("max_bsr", 100000)
+                    before_crit = len(leads)
+                    def passes_criteria(l):
+                        roi = safe_roi(l.get("roi", 0))
+                        ltype = l.get("type", "wholesale")
+                        min_roi = ws_min_roi if ltype == "wholesale" else oa_min_roi
+                        if roi < min_roi: return False
+                        if ltype == "wholesale":
+                            sellers = int(l.get("sellers", 0) or 0)
+                            bsr = int(str(l.get("bsr","0")).replace("#","").replace(",","") or 0) if l.get("bsr") else 0
+                            if sellers > ws_max_sell and ws_max_sell > 0: return False
+                            if bsr > ws_max_bsr and ws_max_bsr > 0 and bsr > 0: return False
+                        return True
+                    leads = [l for l in leads if passes_criteria(l)]
+                    if len(leads) < before_crit:
+                        log.info("Criteria filter removed " + str(before_crit - len(leads)) + " leads for user " + str(user_id or "")[:8])
+
                 if leads and keepa_available():
                     try:
                         log.info("Keepa: verifying " + str(len(leads)) + " leads for user " + str(user_id or "")[:8])

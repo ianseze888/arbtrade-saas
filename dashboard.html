@@ -800,7 +800,22 @@ async function loadLeads() {
     var resp = await fetch(API+'/leads', {headers:getHeaders()});
     if(resp.status===401){logout();return}
     var data = await resp.json();
-    allLeads = data.leads || [];
+    allLeads = (data.leads || []).map(function(l) {
+    // Normalize recommendation to BUY/WATCH/PASS
+    var rec = (l.recommendation || '').toUpperCase();
+    if(rec.indexOf('BUY') > -1 || rec.indexOf('GOOD') > -1 || rec.indexOf('STRONG') > -1) {
+      l.recommendation = 'BUY';
+    } else if(rec.indexOf('PASS') > -1 || rec.indexOf('CAUTION') > -1 || rec.indexOf('AVOID') > -1) {
+      l.recommendation = 'PASS';
+    } else if(rec !== 'BUY' && rec !== 'WATCH' && rec !== 'PASS') {
+      l.recommendation = 'WATCH';
+    }
+    // Cap ROI at 99%
+    if(l.roi && parseInt(String(l.roi).replace('%','')) > 99) {
+      l.roi = '99%';
+    }
+    return l;
+  });
     document.getElementById('m-ws').textContent = data.wholesale_count||0;
     document.getElementById('m-oa').textContent = data.oa_count||0;
     document.getElementById('m-roi').textContent = (data.best_roi||0)+'%';
