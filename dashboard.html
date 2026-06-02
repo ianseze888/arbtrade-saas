@@ -790,7 +790,11 @@ async function loadProfile() {
     document.getElementById('tier-badge').textContent = displayName;
     document.getElementById('tier-badge').className = 'tier-badge tier-'+tier;
     document.getElementById('m-plan').textContent = displayName;
-    document.getElementById('m-limits').textContent = (data.history_days||7)+' day history';
+    var historyMap = {trial:7, starter:7, pro:30, agency:90, custom:90};
+    var historyDays = historyMap[tier] || 7;
+    var leadsMap = {trial:3, starter:5, pro:8, agency:12, custom:20};
+    var leadsPerCycle = leadsMap[tier] || 5;
+    document.getElementById('m-limits').textContent = historyDays+' day history · '+leadsPerCycle+' leads/cycle';
     document.getElementById('billing-tier').textContent = tier;
   } catch(e) { console.error('Profile error:', e); }
 }
