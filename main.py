@@ -871,10 +871,39 @@ async def stripe_webhook(request: Request):
                 except Exception as e2:
                     log.error("Fallback update failed: " + str(e2))
 
+    elif event["type"] == "customer.subscription.updated":
+        # Handle plan switches and reactivations
+        import json as _json
+        try:
+            sub_obj  = event["data"]["object"]
+            sub_dict = _json.loads(_json.dumps(sub_obj, default=str))
+            customer_id  = sub_dict.get("customer")
+            sub_status   = sub_dict.get("status")
+            items        = sub_dict.get("items", {}).get("data", [])
+            new_price_id = items[0].get("price", {}).get("id") if items else None
+
+            if customer_id:
+                # Map price ID to tier
+                price_to_tier = {v: k for k, v in STRIPE_PRICES.items()}
+                new_tier = price_to_tier.get(new_price_id)
+
+                update_data = {"subscription_status": sub_status}
+                if new_tier:
+                    update_data["tier"] = new_tier
+                    log.info("Plan switch: customer=" + str(customer_id)[:12] + " new_tier=" + new_tier)
+
+                supabase_admin.table("profiles").update(update_data).eq("stripe_customer_id", customer_id).execute()
+        except Exception as sub_upd_err:
+            log.error("Subscription updated handler error: " + str(sub_upd_err))
+
     elif event["type"] in ["customer.subscription.deleted", "customer.subscription.paused"]:
         customer_id = event["data"]["object"].get("customer")
         if customer_id:
-            supabase_admin.table("profiles").update({"tier": "cancelled"}).eq("stripe_customer_id", customer_id).execute()
+            supabase_admin.table("profiles").update({
+                "tier": "trial",
+                "subscription_status": "cancelled"
+            }).eq("stripe_customer_id", customer_id).execute()
+            log.info("Subscription cancelled for customer: " + str(customer_id)[:12])
 
     return {"status": "ok"}
 
