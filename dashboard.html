@@ -206,7 +206,7 @@ button.btn-gold:hover{background:var(--gold2)}
 <div class="page active" id="page-dashboard">
   <div id="cancelled-banner" style="display:none;background:rgba(255,92,92,0.08);border:1px solid rgba(255,92,92,0.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-family:var(--mono);color:#ff5c5c">
     ⚠️ Your subscription is cancelled. You can still view your existing leads but no new leads will be generated.
-    <a href="#" onclick="nav('billing')" style="color:var(--gold);margin-left:8px">Reactivate →</a>
+    <a href="#" onclick="openBillingPortal()" style="color:var(--gold);margin-left:8px;cursor:pointer">Reactivate subscription →</a>
   </div>
   <div id="trial-cap-banner" style="display:none;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);border-radius:8px;padding:14px 16px;margin-bottom:16px">
     <div style="font-size:13px;font-weight:600;color:var(--gold);margin-bottom:4px">🎯 You have seen your 20 trial leads</div>
