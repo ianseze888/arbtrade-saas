@@ -796,6 +796,7 @@ async function loadProfile() {
       } else {
         cancelBanner.style.display = 'none';
       }
+    }
     // Show trial cap banner
     var trialCapBanner = document.getElementById('trial-cap-banner');
     if(trialCapBanner) {
@@ -804,7 +805,6 @@ async function loadProfile() {
       } else {
         trialCapBanner.style.display = 'none';
       }
-    }
     }
     var planName = tier.charAt(0).toUpperCase() + tier.slice(1);
     var displayName = (subStatus === 'trialing' && tier !== 'trial') ? planName + ' Trial' : planName;
