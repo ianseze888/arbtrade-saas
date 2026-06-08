@@ -70,10 +70,12 @@ def get_ivan_slot(user_id: str) -> int:
     hash_val = sum(ord(c) for c in str(user_id)) + 7  # Offset so they hit different categories
     return hash_val % len(AGENT_IVAN_WS_CATEGORIES)
 
-def build_ivan_ws_prompt(user_id: str, criteria: dict) -> str:
+def build_ivan_ws_prompt(user_id: str, criteria: dict, scan_num: int = 1) -> str:
     """Build Agent Ivan's wholesale search prompt with web search."""
     slot = get_ivan_slot(user_id)
-    cats = AGENT_IVAN_WS_CATEGORIES[slot]
+    # Offset slot for scan 2 to get different categories
+    effective_slot = (slot + scan_num - 1) % len(AGENT_IVAN_WS_CATEGORIES)
+    cats = AGENT_IVAN_WS_CATEGORIES[effective_slot]
     cats_str = " > ".join(cats)
     dists = AGENT_IVAN_DISTRIBUTORS[slot % len(AGENT_IVAN_DISTRIBUTORS):slot % len(AGENT_IVAN_DISTRIBUTORS) + 3]
     dist_str = ", ".join(dists)
@@ -199,6 +201,23 @@ def run_ivan(user_id: str, criteria: dict, ai_client) -> list:
     oa_enabled = criteria.get("online_arbitrage", {}).get("enabled", True)
     if oa_enabled:
         try:
+            # Second wholesale scan - different categories
+            try:
+                ws_prompt2 = build_ivan_ws_prompt(user_id, criteria, scan_num=2)
+                log.info("Agent Ivan: Running wholesale scan 2 for user " + str(user_id)[:8])
+                time.sleep(random.uniform(1, 3))
+                resp_ws2 = ai_client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=2000,
+                    messages=[{"role": "user", "content": ws_prompt2}]
+                )
+                ws2_text = extract_text(resp_ws2.content)
+                ws2_leads = parse_leads(ws2_text, user_id, "wholesale", now, "Ivan")
+                leads.extend(ws2_leads)
+                log.info("Agent Ivan: Found " + str(len(ws2_leads)) + " wholesale leads (scan 2)")
+            except Exception as e:
+                log.error("Agent Ivan WS scan 2 error: " + str(e))
+
             oa_prompt = build_ivan_oa_prompt(user_id, criteria)
             log.info("Agent Ivan: Running OA scan for user " + str(user_id)[:8])
             time.sleep(random.uniform(1, 3))

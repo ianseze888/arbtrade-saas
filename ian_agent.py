@@ -70,10 +70,12 @@ def get_ian_slot(user_id: str) -> int:
     hash_val = sum(ord(c) for c in str(user_id))
     return hash_val % len(AGENT_IAN_WS_CATEGORIES)
 
-def build_ian_ws_prompt(user_id: str, criteria: dict) -> str:
+def build_ian_ws_prompt(user_id: str, criteria: dict, scan_num: int = 1) -> str:
     """Build Agent Ian's wholesale search prompt with web search."""
     slot = get_ian_slot(user_id)
-    cats = AGENT_IAN_WS_CATEGORIES[slot]
+    # Offset slot for scan 2 to get different categories
+    effective_slot = (slot + scan_num - 1) % len(AGENT_IAN_WS_CATEGORIES)
+    cats = AGENT_IAN_WS_CATEGORIES[effective_slot]
     cats_str = " > ".join(cats)
     dists = AGENT_IAN_DISTRIBUTORS[slot % len(AGENT_IAN_DISTRIBUTORS):slot % len(AGENT_IAN_DISTRIBUTORS) + 3]
     dist_str = ", ".join(dists)
@@ -196,6 +198,23 @@ def run_ian(user_id: str, criteria: dict, ai_client) -> list:
     oa_enabled = criteria.get("online_arbitrage", {}).get("enabled", True)
     if oa_enabled:
         try:
+            # Second wholesale scan - different categories
+            try:
+                ws_prompt2 = build_ian_ws_prompt(user_id, criteria, scan_num=2)
+                log.info("Agent Ian: Running wholesale scan 2 for user " + str(user_id)[:8])
+                time.sleep(random.uniform(1, 3))
+                resp_ws2 = ai_client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=2000,
+                    messages=[{"role": "user", "content": ws_prompt2}]
+                )
+                ws2_text = extract_text(resp_ws2.content)
+                ws2_leads = parse_leads(ws2_text, user_id, "wholesale", now, "Ian")
+                leads.extend(ws2_leads)
+                log.info("Agent Ian: Found " + str(len(ws2_leads)) + " wholesale leads (scan 2)")
+            except Exception as e:
+                log.error("Agent Ian WS scan 2 error: " + str(e))
+
             oa_prompt = build_ian_oa_prompt(user_id, criteria)
             log.info("Agent Ian: Running OA scan for user " + str(user_id)[:8])
             time.sleep(random.uniform(1, 3))

@@ -96,8 +96,8 @@ def search_product_by_name(name: str, marketplace: str = "US") -> dict:
     marketplace_id = MARKETPLACE_IDS.get(marketplace, 1)
     
     try:
-        # Keepa product search endpoint
-        url = KEEPA_BASE_URL + "/product"
+        # Keepa search endpoint - correct REST API
+        url = KEEPA_BASE_URL + "/search"
         params = {
             "key":    KEEPA_API_KEY,
             "domain": marketplace_id,
